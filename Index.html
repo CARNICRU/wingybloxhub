@@ -1,0 +1,2577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WingyBlox Hub</title>
+  <link rel="icon" type="image/webp" href="https://i.ibb.co/0jGRQXWj/width433.webp">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    :root {
+      --bg-body: #090d16;
+      --bg-card: rgba(15, 23, 42, 0.94);
+      --bg-subcard: #1e293b;
+      --border-color: #334155;
+      --text-main: #f1f5f9;
+      --text-sub: #94a3b8;
+      --accent: #0284c7;
+      --accent-hover: #0369a1;
+    }
+
+    body.light-theme {
+      --bg-body: #f8fafc;
+      --bg-card: rgba(255, 255, 255, 0.94);
+      --bg-subcard: #f1f5f9;
+      --border-color: #cbd5e1;
+      --text-main: #0f172a;
+      --text-sub: #64748b;
+      --accent: #0284c7;
+      --accent-hover: #0369a1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+    body {
+      min-height: 100vh; background: var(--bg-body); color: var(--text-main);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      position: relative; overflow-x: hidden; transition: background 0.3s ease, color 0.3s ease; padding: 20px;
+    }
+
+    #toastContainer {
+      position: fixed; top: 20px; right: 20px; z-index: 10000;
+      display: flex; flex-direction: column; gap: 10px; max-width: 350px; width: 100%; pointer-events: none;
+    }
+
+    .toast {
+      pointer-events: auto; padding: 12px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      color: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.4); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s; opacity: 0;
+    }
+
+    .toast.show { transform: translateX(0); opacity: 1; }
+    .toast-success { background: rgba(34, 197, 94, 0.95); border-left: 4px solid #15803d; }
+    .toast-error { background: rgba(239, 68, 68, 0.95); border-left: 4px solid #b91c1c; }
+    .toast-info { background: rgba(2, 132, 199, 0.95); border-left: 4px solid #0369a1; }
+
+    .bg-blur {
+      position: fixed; top: -20px; left: -20px; right: -20px; bottom: -20px;
+      background-image: url('https://i.ibb.co/LdDsDjSw/Captura-de-pantalla-2026-11-01-142419.png');
+      background-size: cover; background-position: center; filter: blur(10px) brightness(0.8); z-index: 1; transform: scale(1.05);
+    }
+
+    #loadingOverlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px); z-index: 9999;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+
+    #loadingOverlay.active { opacity: 1; visibility: visible; }
+
+    .spinner {
+      width: 44px; height: 44px; border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 12px;
+    }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    .loading-text { color: #f8fafc; font-size: 13px; font-weight: 500; letter-spacing: 0.5px; }
+
+    .app-card {
+      position: relative; z-index: 10; width: 100%; max-width: 440px;
+      background: var(--bg-card); backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .logo-container { text-align: center; margin-bottom: 24px; }
+    .logo-container img { max-height: 52px; width: auto; }
+
+    h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; text-align: center; color: var(--text-main); }
+    p.subtitle { font-size: 14px; color: var(--text-sub); text-align: center; margin-bottom: 24px; }
+
+    .form-group { margin-bottom: 16px; }
+
+    label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-sub); margin-bottom: 6px; }
+
+    input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], select, textarea {
+      width: 100%; padding: 12px 14px; background: var(--bg-subcard); border: 1px solid var(--border-color);
+      border-radius: 6px; color: var(--text-main); font-size: 14px; outline: none; transition: border-color 0.2s, transform 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus { border-color: #38bdf8; transform: translateY(-1px); }
+
+    .btn {
+      width: 100%; padding: 12px; background: var(--accent); color: #ffffff; border: none; border-radius: 6px;
+      font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex; justify-content: center; align-items: center; gap: 8px; text-decoration: none;
+    }
+
+    .btn:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-secondary { background: var(--bg-subcard); color: var(--text-main); margin-top: 10px; border: 1px solid var(--border-color); }
+    .btn-secondary:hover { opacity: 0.95; transform: translateY(-2px); }
+
+    .switch-link { text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-sub); }
+    .switch-link a { color: #38bdf8; text-decoration: none; font-weight: 600; }
+
+    .alert { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .alert-error { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; }
+    .alert-success { background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #86efac; }
+    .alert-info { background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #bae6fd; }
+
+    .dashboard-container {
+      position: relative; z-index: 10; width: 100vw; height: 100vh; display: flex;
+      background: var(--bg-body); position: fixed; top: 0; left: 0;
+    }
+
+    .sidebar {
+      width: 64px; background: var(--bg-subcard); border-right: 1px solid var(--border-color);
+      display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 20px;
+    }
+
+    .sidebar-icon {
+      width: 42px; height: 42px; border-radius: 10px; display: flex; justify-content: center; align-items: center;
+      cursor: pointer; color: var(--text-sub); transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .sidebar-icon:hover, .sidebar-icon.active { background: var(--bg-card); color: #38bdf8; transform: scale(1.08); }
+
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+
+    .top-header {
+      height: 60px; background: var(--bg-subcard); border-bottom: 1px solid var(--border-color);
+      display: flex; justify-content: space-between; align-items: center; padding: 0 24px;
+    }
+
+    .group-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; }
+    .group-brand img { width: 30px; height: 30px; border-radius: 6px; }
+
+    .user-profile-trigger { position: relative; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .user-profile-trigger img { width: 38px; height: 38px; border-radius: 8px; background: #22c55e; transition: transform 0.2s; }
+    .user-profile-trigger:hover img { transform: scale(1.08); }
+
+    .profile-dropdown {
+      position: absolute; top: 50px; right: 0; width: 250px; background: var(--bg-subcard);
+      border: 1px solid var(--border-color); border-radius: 10px; padding: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); display: none; z-index: 100;
+    }
+
+    .profile-dropdown.active { display: block; animation: fadeIn 0.2s ease; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .dropdown-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
+    .dropdown-header img { width: 42px; height: 42px; border-radius: 8px; }
+    
+    .dropdown-item { 
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px; font-size: 13px; font-weight: 600; 
+      border-radius: 6px; cursor: pointer; transition: background 0.2s, color 0.2s; color: var(--text-main); 
+    }
+    .dropdown-item:hover { background: var(--bg-card); color: #38bdf8; }
+
+    .dash-body { padding: 28px; }
+
+    .banner {
+      position: relative; width: 100%; height: 170px; border-radius: 12px; overflow: hidden;
+      margin-bottom: 24px; display: flex; align-items: flex-end; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .banner-bg {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background-image: url('https://i.ibb.co/S7rHFKCf/Captura-de-pantalla-2026-11-01-163040.png');
+      background-size: cover; background-position: center; filter: blur(4px) brightness(0.7); z-index: 1;
+    }
+
+    .banner-text { position: relative; z-index: 2; font-size: 24px; font-weight: 800; color: #ffffff; text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
+
+    .dash-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+
+    .games-row { display: flex; gap: 16px; }
+    .game-card {
+      position: relative; flex: 1; height: 130px; border-radius: 12px; overflow: hidden;
+      background-size: cover; background-position: center; display: flex; flex-direction: column;
+      justify-content: flex-end; padding: 16px; box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
+    }
+
+    .game-card:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 12px 24px rgba(0,0,0,0.5); }
+
+    .game-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(0,0,0,0.85), transparent); }
+
+    .game-info { position: relative; z-index: 2; }
+    .game-title { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .play-btn {
+      display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.25);
+      backdrop-filter: blur(4px); color: #fff; text-decoration: none; padding: 5px 12px;
+      border-radius: 6px; font-size: 11px; font-weight: 700; transition: background 0.2s, transform 0.2s;
+    }
+
+    .play-btn:hover { background: #0284c7; transform: scale(1.05); }
+
+    .widget-box {
+      background: var(--bg-subcard); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    }
+
+    .time-display { text-align: center; font-size: 28px; font-weight: 800; color: var(--text-main); }
+    .tz-display { text-align: center; font-size: 12px; color: var(--text-sub); margin-top: 4px; font-weight: 600; }
+
+    .quick-link-item {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 64px; height: 64px; background: linear-gradient(135deg, #0284c7, #0369a1);
+      border-radius: 12px; color: #fff; cursor: pointer; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3); text-decoration: none;
+    }
+
+    .quick-link-item:hover { transform: translateY(-4px) scale(1.08); box-shadow: 0 8px 20px rgba(2, 132, 199, 0.5); }
+    .quick-link-label { font-size: 12px; font-weight: 700; margin-top: 8px; color: var(--text-main); text-align: center; }
+
+    .section-title { font-size: 18px; font-weight: 800; margin: 28px 0 16px 0; color: var(--text-main); }
+
+    .birthday-frame-wrapper {
+      position: relative; border-radius: 14px; padding: 3px; background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6, #3b82f6);
+      background-size: 300% 300%; animation: partyGlow 6s ease infinite; box-shadow: 0 6px 20px rgba(245, 158, 11, 0.2);
+    }
+
+    @keyframes partyGlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .birthday-frame-inner {
+      background: var(--bg-subcard); border-radius: 11px; padding: 12px; position: relative; overflow: hidden;
+    }
+
+    .party-emoji {
+      position: absolute; font-size: 16px; opacity: 0.35; pointer-events: none; animation: floatParty 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatParty {
+      0% { transform: translateY(0px) rotate(0deg); }
+      100% { transform: translateY(-8px) rotate(12deg); }
+    }
+
+    .horizontal-scroll {
+      display: flex; gap: 14px; overflow-x: auto; padding: 4px 4px 12px 4px; position: relative; z-index: 2;
+      scroll-behavior: smooth;
+    }
+
+    .horizontal-scroll::-webkit-scrollbar { height: 6px; }
+    .horizontal-scroll::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.15); border-radius: 10px; }
+    .horizontal-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    .horizontal-scroll::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+
+    .scroll-card-bday {
+      min-width: 150px; width: 150px; flex-shrink: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); border: 1px solid var(--border-color);
+      border-radius: 10px; padding: 12px; display: flex; flex-direction: column; align-items: center; text-align: center;
+    }
+    .scroll-card-bday.is-today { border-color: #f59e0b; background: linear-gradient(135deg, rgba(245,158,11,0.25), rgba(30,41,59,0.9)); box-shadow: 0 4px 14px rgba(245,158,11,0.4); }
+    .scroll-card-bday img { width: 50px; height: 50px; border-radius: 50%; margin-bottom: 8px; background: transparent; object-fit: cover; }
+    .scroll-card-bday h4 { font-size: 12px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 125px; }
+    .scroll-card-bday p { font-size: 11px; color: #f59e0b; font-weight: 700; margin-top: 2px; }
+
+    .scroll-card-team {
+      min-width: 150px; width: 150px; flex-shrink: 0; background: var(--bg-subcard); border: 1px solid var(--border-color);
+      border-radius: 10px; padding: 12px; display: flex; flex-direction: column; align-items: center; text-align: center;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .scroll-card-team:hover { transform: translateY(-2px); border-color: #38bdf8; }
+    .scroll-card-team img { width: 50px; height: 50px; border-radius: 50%; margin-bottom: 8px; background: transparent; object-fit: cover; }
+    .scroll-card-team h4 { font-size: 12px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 125px; }
+    .scroll-card-team p { font-size: 11px; color: #38bdf8; font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 125px; }
+
+    .staff-category-box {
+      background: var(--bg-subcard); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 20px; margin-bottom: 20px;
+    }
+
+    .staff-category-header {
+      display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 800;
+      color: var(--text-main); margin-bottom: 16px;
+    }
+
+    .staff-rank-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .staff-count-badge { font-size: 13px; font-weight: 600; color: var(--text-sub); }
+
+    .staff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+
+    .staff-user-card {
+      background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px;
+      padding: 12px 14px; display: flex; align-items: center; gap: 14px;
+    }
+
+    .staff-user-card img { width: 46px; height: 46px; border-radius: 8px; background: transparent; object-fit: cover; }
+    .staff-user-info h4 { font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
+    .staff-user-info p { font-size: 11px; color: var(--text-sub); font-weight: 500; }
+
+    .loa-form-card {
+      background: var(--bg-subcard); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 28px; max-width: 600px; margin: 0 auto;
+    }
+
+    .time-off-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .metric-card { background: var(--bg-subcard); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.2); }
+    .metric-title { font-size: 13px; font-weight: 700; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .metric-value { font-size: 28px; font-weight: 800; color: var(--text-main); }
+
+    .out-of-office-scroll {
+      display: flex; gap: 16px; overflow-x: auto; padding: 4px 4px 16px 4px; margin-bottom: 32px; scroll-behavior: smooth;
+    }
+    .out-of-office-scroll::-webkit-scrollbar { height: 6px; }
+    .out-of-office-scroll::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.15); border-radius: 10px; }
+    .out-of-office-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+    .oof-card {
+      min-width: 150px; width: 150px; flex-shrink: 0; background: var(--bg-subcard); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 14px; display: flex; flex-direction: column; align-items: center; text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .oof-card img { width: 64px; height: 64px; border-radius: 50%; background: transparent; margin-bottom: 10px; object-fit: cover; }
+    .oof-card h4 { font-size: 13px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 125px; }
+    .oof-card p { font-size: 11px; color: var(--text-sub); margin-top: 4px; font-weight: 500; }
+
+    .pending-req-box {
+      background: var(--bg-subcard); border: 1px solid var(--border-color); border-radius: 12px;
+      padding: 20px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    }
+    .pending-req-header { display: flex; align-items: center; gap: 14px; }
+    .pending-req-header img { width: 44px; height: 44px; border-radius: 50%; background: transparent; object-fit: cover; }
+    .pending-req-title h4 { font-size: 14px; font-weight: 700; color: var(--text-main); }
+    .pending-req-title p { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+    .pending-req-reason { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; font-size: 13px; color: var(--text-main); }
+    .pending-req-footer { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-sub); }
+
+    .registered-users-scroll-frame {
+      max-height: 520px; overflow-y: auto; padding-right: 6px;
+    }
+    .registered-users-scroll-frame::-webkit-scrollbar { width: 6px; }
+    .registered-users-scroll-frame::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 10px; }
+    .registered-users-scroll-frame::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+    .admin-user-row-card {
+      background: var(--bg-subcard); border: 1px solid var(--border-color); border-radius: 12px;
+      padding: 14px 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 16px;
+      cursor: pointer; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .admin-user-row-card:hover { transform: translateY(-2px); border-color: #38bdf8; background: var(--bg-card); }
+    .admin-user-row-card img { width: 50px; height: 50px; border-radius: 50%; background: transparent; object-fit: cover; }
+    .admin-user-row-info { flex: 1; }
+    .admin-user-row-info h4 { font-size: 15px; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
+    .admin-user-row-info p { font-size: 12px; color: var(--text-sub); }
+
+    .admin-tab-buttons { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .admin-tab-btn {
+      padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px;
+      background: var(--bg-subcard); color: var(--text-sub); border: 1px solid var(--border-color); cursor: pointer;
+    }
+    .admin-tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    #birthdayOverlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 10000; pointer-events: none;
+      display: flex; justify-content: center; align-items: center;
+      opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    #birthdayOverlay.active { opacity: 1; visibility: visible; }
+
+    .bday-title-clean {
+      font-size: 36px; font-weight: 900; text-align: center; color: #f59e0b;
+      background: rgba(15, 23, 42, 0.9); padding: 20px 32px; border-radius: 16px;
+      border: 2px solid #f59e0b; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .admin-req-card {
+      background: var(--bg-subcard); border: 1px solid var(--border-color); border-radius: 12px;
+      padding: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .admin-req-card img { width: 56px; height: 56px; border-radius: 50%; background: transparent; }
+    .admin-req-info { flex: 1; }
+    .admin-req-info h3 { font-size: 15px; font-weight: 700; color: var(--text-main); }
+    .admin-req-info p { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+    .admin-req-badge { display: inline-block; background: rgba(168, 85, 247, 0.2); color: #c084fc; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-top: 4px; }
+
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); z-index: 1000;
+      display: none; justify-content: center; align-items: center;
+    }
+
+    .modal-overlay.active { display: flex; }
+    .modal-body { width: 460px; max-height: 85vh; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 28px; }
+
+    footer { position: relative; z-index: 10; margin-top: 16px; font-size: 12px; color: #94a3b8; text-align: center; width: 100%; }
+  </style>
+</head>
+<body>
+
+  <div id="toastContainer"></div>
+
+  <div id="birthdayOverlay">
+    <div class="bday-title-clean" id="bdayOverlayText">Happy Birthday! 🎂🎉</div>
+  </div>
+
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loadingText">Working on it...</div>
+  </div>
+
+  <div class="bg-blur" id="authBg"></div>
+
+  <div class="app-card" id="authCard">
+    <div class="logo-container">
+      <img src="https://i.ibb.co/0jGRQXWj/width433.webp" alt="WingyBlox Hub Logo">
+    </div>
+
+    <div id="alertBox" class="alert"></div>
+
+    <div id="viewSignIn">
+      <h2>Sign In</h2>
+      <p class="subtitle">Enter your account email and password</p>
+
+      <form id="signInForm" onsubmit="handleAuth(event)">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="loginEmail" required placeholder="name@domain.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn">Sign In / Register</button>
+      </form>
+
+      <div class="switch-link" style="text-align: right; margin-top: 14px;">
+        <a href="#" onclick="switchView('viewForgotPassword'); return false;">Forgot password?</a>
+      </div>
+    </div>
+
+    <div id="viewRobloxPrompt" style="display: none;">
+      <h2>Roblox Profile</h2>
+      <p class="subtitle">New account! Enter your Roblox username.</p>
+      <form onsubmit="handleRobloxSetup(event)">
+        <div class="form-group">
+          <label>Roblox Username</label>
+          <input type="text" id="promptRobloxUser" required placeholder="Roblox Username">
+        </div>
+        <button type="submit" class="btn">Complete Registration</button>
+      </form>
+      <button type="button" class="btn btn-secondary" onclick="switchView('viewSignIn')">Cancel</button>
+    </div>
+
+    <div id="viewVerify" style="display: none;">
+      <h2>Check Your Email</h2>
+      <p class="subtitle">We sent a 6-digit code to <b id="displayVerifyEmail"></b>.</p>
+      <form onsubmit="handleVerifyCode(event)">
+        <div class="form-group">
+          <label>Verification Code</label>
+          <input type="text" id="verifyCode" maxlength="6" style="text-align: center; letter-spacing: 4px; font-weight: bold; font-size: 18px;" placeholder="123456" required>
+        </div>
+        <button type="submit" class="btn">Verify Code</button>
+      </form>
+      <button type="button" class="btn btn-secondary" onclick="jumpToEmail()">📩 Open Gmail</button>
+    </div>
+
+    <div id="viewBirthday" style="display: none;">
+      <h2>Your Birthday</h2>
+      <p class="subtitle">Optional: Select your month and day.</p>
+      <form onsubmit="handleSaveBirthday(event)">
+        <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+          <div style="flex: 2;">
+            <label>Month</label>
+            <select id="bdayMonth">
+              <option value="">Month</option>
+              <option value="January">January</option><option value="February">February</option><option value="March">March</option><option value="April">April</option><option value="May">May</option><option value="June">June</option><option value="July">July</option><option value="August">August</option><option value="September">September</option><option value="October">October</option><option value="November">November</option><option value="December">December</option>
+            </select>
+          </div>
+          <div style="flex: 1;">
+            <label>Day</label>
+            <input type="number" id="bdayDay" min="1" max="31" placeholder="DD">
+          </div>
+        </div>
+        <button type="submit" class="btn">Save Birthday</button>
+      </form>
+      <button type="button" class="btn btn-secondary" onclick="handleSkipBirthday()">Skip for now</button>
+    </div>
+
+    <div id="viewForgotPassword" style="display: none;">
+      <h2>Reset Password</h2>
+      <p class="subtitle">Enter your account email</p>
+      <form onsubmit="handleSendReset(event)">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="resetEmail" required placeholder="name@domain.com">
+        </div>
+        <button type="submit" class="btn">Send Reset Code</button>
+      </form>
+      <div class="switch-link">
+        <a href="#" onclick="switchView('viewSignIn'); return false;">Back to Sign In</a>
+      </div>
+    </div>
+
+    <div id="viewConfirmReset" style="display: none;">
+      <h2>New Password</h2>
+      <p class="subtitle">Enter code and new password</p>
+      <form onsubmit="handleConfirmReset(event)">
+        <div class="form-group">
+          <label>Reset Code</label>
+          <input type="text" id="resetCode" maxlength="6" required placeholder="123456" style="text-align: center; letter-spacing: 4px; font-weight: bold;">
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" id="newPassword" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn">Update Password</button>
+      </form>
+    </div>
+
+    <div id="viewPendingApproval" style="display: none; text-align: center;">
+      <h2 style="color: #f59e0b;">Waiting for Approval</h2>
+      <p class="subtitle" style="margin-top: 12px;">Your email is verified! Your Roblox account is under review.</p>
+      <button type="button" class="btn" onclick="checkStatusManual()">Refresh Status</button>
+      <button type="button" class="btn btn-secondary" onclick="handleSignOut()">Back to Sign In</button>
+    </div>
+
+  </div>
+
+  <footer>
+    © WingyBlox Hub 2026
+  </footer>
+
+  <div class="dashboard-container" id="dashContainer" style="display: none;">
+    <div class="sidebar">
+      <div class="sidebar-icon active" id="navDashBtn" title="Dashboard" onclick="showDashboardView()">
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      </div>
+
+      <div class="sidebar-icon" id="navDirectoryBtn" title="Staff Directory" onclick="showStaffDirectoryView()">
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      </div>
+
+      <div class="sidebar-icon" id="navActivityBtn" title="Activity & Leaderboard" onclick="showActivityView()">
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+      </div>
+
+      <div class="sidebar-icon" id="navLoaBtn" title="Request Leave of Absence" onclick="showLoaView()">
+        <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M13.8 14.8c-.5.3-1.1.2-1.4-.3l-3-4.5c-.3-.5-.2-1.1.3-1.4s1.1-.2 1.4.3l3 4.5c.3.5.2 1.1-.3 1.4zM22 17.5c0 .3-.1.5-.3.7l-4.5 4.5c-.4.4-1 .4-1.4 0l-4.5-4.5c-.4-.4-.4-1 0-1.4s1-.4 1.4 0l3.8 3.8 3.8-3.8c.4-.4 1-.4 1.4 0 .2.2.3.4.3.7zM12 2C6.5 2 2 6.5 2 12c0 2.5.9 4.8 2.5 6.5l1.4-1.4C4.6 15.7 3.9 13.9 3.9 12 3.9 7.5 7.5 3.9 12 3.9s8.1 3.6 8.1 8.1c0 1.9-.7 3.7-2 5.1l1.4 1.4C21.1 16.8 22 14.5 22 12c0-5.5-4.5-10-10-10z"/></svg>
+      </div>
+
+      <div class="sidebar-icon" id="adminSidebarBtn" style="display:none;" title="Admin Approvals Portal" onclick="showAdminPortalView()">
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="top-header">
+        <div class="group-brand">
+          <img id="headerGroupIcon" src="" alt="Group">
+          <span>WingyBlox Corporation</span>
+        </div>
+
+        <div class="user-profile-trigger" onclick="toggleProfileMenu(event)">
+          <img id="headerUserAvatar" class="roblox-avatar" data-userid="" src="" alt="Avatar">
+          <div class="profile-dropdown" id="profileMenu">
+            <div class="dropdown-header">
+              <img id="menuUserAvatar" class="roblox-avatar" data-userid="" src="" alt="Avatar">
+              <div>
+                <div style="font-weight:700; font-size:13px;" id="menuRobloxName">(roblox user)</div>
+                <div style="font-size:11px; color:var(--text-sub);" id="menuEmail">(email)</div>
+              </div>
+            </div>
+            
+            <div class="dropdown-item" onclick="openPreferences()">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6-3.6z"/></svg>
+              Preferences
+            </div>
+            
+            <div class="dropdown-item" onclick="handleToggleTheme()">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1 z"/></svg>
+              Switch theme
+            </div>
+            
+            <div class="dropdown-item" onclick="handleSignOut()">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+              Sign out
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-body" id="viewDashboardMain">
+        <div class="banner">
+          <div class="banner-bg"></div>
+          <div class="banner-text" id="motivationalBannerText">You're doing great</div>
+        </div>
+
+        <div class="dash-grid">
+          <div>
+            <div class="games-row">
+              <div class="game-card" style="background-image: url('https://i.ibb.co/LdDsDjSw/Captura-de-pantalla-2026-11-01-142419.png');">
+                <div class="game-info">
+                  <div class="game-title">WingyBlox Restaurant</div>
+                  <a href="https://www.roblox.com/games/126250928925426/WingyBlox-Corporation" target="_blank" class="play-btn">▶ Play</a>
+                </div>
+              </div>
+              <div class="game-card" style="background-image: url('https://i.ibb.co/Q7rsdmjf/Captura-de-pantalla-2026-11-01-161814.png');">
+                <div class="game-info">
+                  <div class="game-title">Training Centre</div>
+                  <a href="https://www.roblox.com/games/97008113721356/WingyBlox-Training-Centre" target="_blank" class="play-btn">▶ Play</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="widget-box">
+              <div class="time-display" id="localClock">--:--:--</div>
+              <div class="tz-display" id="localTzDisplay">Local Time Zone</div>
+            </div>
+
+            <div class="widget-box">
+              <div style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">Quick Links</div>
+              <div style="display: flex; gap: 16px;">
+                <a href="https://docs.google.com/document/d/13SqUGIyp8l8i6y-pNs_7Rwdhj2HfcK_FoKrsXYSFACc/edit?usp=sharing" target="_blank" style="text-decoration:none;">
+                  <div class="quick-link-item" title="Open Shift Guide">
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                  </div>
+                  <div class="quick-link-label">Shift Guide</div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">This week at WingyBlox Corporation</div>
+
+        <div style="margin-bottom: 24px;">
+          <div style="font-size: 14px; font-weight: 700; color: var(--text-sub); margin-bottom: 10px;">Birthdays 🎂</div>
+          
+          <div class="birthday-frame-wrapper">
+            <div class="birthday-frame-inner">
+              <span class="party-emoji" style="top:5px; left:10px;">🎉</span>
+              <span class="party-emoji" style="top:5px; right:15px; animation-delay:1s;">🎈</span>
+              <span class="party-emoji" style="bottom:5px; left:30%; animation-delay:2s;">🎂</span>
+              <span class="party-emoji" style="bottom:5px; right:25%; animation-delay:1.5s;">🎁</span>
+              
+              <div class="horizontal-scroll" id="birthdaysScroll">
+                <p style="font-size:12px; color:var(--text-sub);">No upcoming birthdays this week.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div>
+          <div style="font-size: 16px; font-weight: 800; color: var(--text-main); margin-bottom: 12px;">New to the team 👋</div>
+          <div class="horizontal-scroll" id="newTeamScroll"><p style="font-size:12px; color:var(--text-sub);">No new members joined recently.</p></div>
+        </div>
+      </div>
+
+      <div class="dash-body" id="viewStaffDirectory" style="display: none;">
+        <h2 style="text-align: left; margin-bottom: 4px;">Staff Directory</h2>
+        <p class="subtitle" style="text-align: left; margin-bottom: 24px;">Staff directory from managerial team to executive directory.</p>
+
+        <div id="staffDirectoryContainer">
+          <p style="font-size: 13px; color: var(--text-sub);">Loading directory...</p>
+        </div>
+      </div>
+
+      <div class="dash-body" id="viewActivitySection" style="display: none;">
+        <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+          <button class="admin-tab-btn active" id="btnActTabHistory" onclick="switchActivitySubTab('history')">History (Your minute history)</button>
+          <button class="admin-tab-btn" id="btnActTabLeaderboard" onclick="switchActivitySubTab('leaderboard')">Leaderboard (See how you stack up)</button>
+        </div>
+
+        <div id="activityHistorySubView">
+          <div style="background:var(--bg-subcard); border:1px solid var(--border-color); border-radius:12px; padding:24px; margin-bottom:24px;">
+            <h3 style="font-size:16px; font-weight:700; margin-bottom:16px; color:var(--text-main);">Activity Grid</h3>
+            <div id="activityGridHeatmap" style="display:grid; grid-template-columns: repeat(28, 1fr); gap:4px; margin-bottom:12px;">
+            </div>
+            <div style="font-size:12px; color:var(--text-sub); display:flex; align-items:center; gap:8px;">
+              <span>Less</span>
+              <span style="width:12px; height:12px; background:#1e293b; border-radius:2px;"></span>
+              <span style="width:12px; height:12px; background:#0284c7; border-radius:2px;"></span>
+              <span style="width:12px; height:12px; background:#38bdf8; border-radius:2px;"></span>
+              <span>More</span>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; margin-bottom:24px;">
+            <div class="metric-card">
+              <div class="metric-title">Minutes in game</div>
+              <div style="font-size:11px; color:var(--text-sub); margin-bottom:4px;">Since monday</div>
+              <div class="metric-value" id="actStatMinutes">0</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">Messages sent</div>
+              <div style="font-size:11px; color:var(--text-sub); margin-bottom:4px;">Since monday</div>
+              <div class="metric-value" id="actStatMessages">0</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">Average minutes</div>
+              <div style="font-size:11px; color:var(--text-sub); margin-bottom:4px;">Per day</div>
+              <div class="metric-value" id="actStatAvg">0</div>
+            </div>
+          </div>
+
+          <div id="activityLogsListContainer">
+            <p style="font-size:13px; color:var(--text-sub);">Loading activity history...</p>
+          </div>
+        </div>
+
+        <div id="activityLeaderboardSubView" style="display:none;">
+          <h2 style="text-align:left; margin-bottom:4px;">Leaderboard</h2>
+          <p class="subtitle" style="text-align:left; margin-bottom:16px;">See how you stack up against other group members.</p>
+
+          <div style="margin-bottom:20px;">
+            <label>Select a week</label>
+            <input type="date" id="leaderboardWeekPicker" style="max-width:220px;" onchange="loadLeaderboardData()">
+            <div id="leaderboardWeekRangeLabel" style="font-size:12px; color:var(--text-sub); margin-top:6px;">Showing leaderboard for current week</div>
+          </div>
+
+          <div class="section-title" style="margin-top:0;">Minutes</div>
+          <div id="leaderboardTopThree" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; margin-bottom:20px;">
+          </div>
+
+          <div id="leaderboardUserRow" style="background:var(--bg-subcard); border:1px solid var(--border-color); border-radius:12px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-weight:700;" id="leaderboardUserRankText">--. You</div>
+            <div style="color:#38bdf8; font-weight:700;" id="leaderboardUserMinsText">0 minutes</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-body" id="viewLoAForm" style="display: none;">
+        <h2 style="text-align: left; margin-bottom: 4px;">Request Leave of Absence</h2>
+        <p class="subtitle" style="text-align: left; margin-bottom: 24px;">Submit a request for temporary leave from staff duties.</p>
+
+        <div class="loa-form-card">
+          <form onsubmit="handleSubmitLoA(event)">
+            <div class="form-group">
+              <label>Reason for LoA</label>
+              <select id="loaReasonSelect" onchange="toggleLoAOtherReason()" required>
+                <option value="">Select Reason...</option>
+                <option value="School">School</option>
+                <option value="Family Issues">Family Issues</option>
+                <option value="Exam preparation">Exam preparation</option>
+                <option value="Medical Recovery">Medical Recovery</option>
+                <option value="Legal Disputes">Legal Disputes</option>
+                <option value="Event Organization">Event Organization</option>
+                <option value="Mental Health">Mental Health</option>
+                <option value="Military Service">Military Service</option>
+                <option value="Platform Vacation">Platform Vacation</option>
+                <option value="Vacation">Vacation</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="loaOtherGroup" style="display: none;">
+              <label>Specify Reason</label>
+              <input type="text" id="loaReasonOther" placeholder="Please explain your reason...">
+            </div>
+
+            <div style="display: flex; gap: 16px;">
+              <div class="form-group" style="flex:1;">
+                <label>Start Date (Must be a Monday)</label>
+                <input type="date" id="loaStartDate" required>
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label>End Date (Must be a Monday)</label>
+                <input type="date" id="loaEndDate" required>
+              </div>
+            </div>
+
+            <button type="submit" class="btn" style="margin-top: 10px;">Submit LoA Request</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="dash-body" id="viewAdminPortal" style="display: none;">
+        <h2 style="text-align: left; margin-bottom: 4px;">Admin Approvals Portal</h2>
+        <p class="subtitle" style="text-align: left; margin-bottom: 16px;">Review and manage staff verifications, registered users, staff activity, and Leave of Absence requests.</p>
+
+        <div class="admin-tab-buttons">
+          <button class="admin-tab-btn active" id="btnAdminTabVerif" onclick="switchAdminSubTab('verifications')">Staff Verifications</button>
+          <button class="admin-tab-btn" id="btnAdminTabUsers" onclick="switchAdminSubTab('registered_users')">Registered Users</button>
+          <button class="admin-tab-btn" id="btnAdminTabStaffActivity" onclick="switchAdminSubTab('staff_activity')">Staff Activity Tracking</button>
+          <button class="admin-tab-btn" id="btnAdminTabLoa" onclick="switchAdminSubTab('loa_management')">LoA Management & Logs</button>
+        </div>
+
+        <div id="adminPortalRequestsList">
+          <p style="font-size: 13px; color: var(--text-sub);">Loading pending requests...</p>
+        </div>
+
+        <div id="adminRegisteredUsersSection" style="display: none;">
+          <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--text-main);">Hub Registered Users</h3>
+          <div class="registered-users-scroll-frame" id="adminRegisteredUsersList">
+            <p style="font-size: 13px; color: var(--text-sub);">Loading users...</p>
+          </div>
+        </div>
+
+        <div id="adminStaffActivitySection" style="display: none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main);">Staff Activity</h3>
+            <div>
+              <label style="font-size:11px; display:inline-block; margin-right:6px;">Week:</label>
+              <input type="date" id="adminStaffActivityWeekPicker" style="padding:6px 10px; font-size:12px;" onchange="loadAdminStaffActivity()">
+            </div>
+          </div>
+          <div class="registered-users-scroll-frame" id="adminStaffActivityList">
+            <p style="font-size: 13px; color: var(--text-sub);">Loading staff members...</p>
+          </div>
+        </div>
+
+        <div id="adminLoaManagementSection" style="display: none;">
+          <div class="time-off-metrics">
+            <div class="metric-card">
+              <div class="metric-title">Staff out</div>
+              <div class="metric-value" id="metricStaffOut">0</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">Pending Requests</div>
+              <div class="metric-value" id="metricPendingReqs">0</div>
+            </div>
+          </div>
+
+          <div style="font-size: 16px; font-weight: 800; color: var(--text-main); margin-bottom: 12px;">Out of office</div>
+          <div class="out-of-office-scroll" id="outOfOfficeScrollContainer">
+            <p style="font-size: 13px; color: var(--text-sub);">No staff currently out of office.</p>
+          </div>
+
+          <div style="font-size: 16px; font-weight: 800; color: var(--text-main); margin-bottom: 12px;">Pending Requests</div>
+          <div id="adminLoaRequestsList" style="margin-bottom: 28px;">
+            <p style="font-size: 13px; color: var(--text-sub);">Loading pending LoA requests...</p>
+          </div>
+
+          <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--text-main);">LoA Logs</h3>
+          <div id="adminLoaLogsList">
+            <p style="font-size: 13px; color: var(--text-sub);">Loading LoA logs...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-body" id="viewRegisteredUserProfile" style="display: none;">
+        <button class="btn btn-secondary" style="width: auto; padding: 8px 16px; margin-bottom: 20px;" onclick="backToRegisteredUsersList()">← Back to Registered Users</button>
+        
+        <div style="max-width: 600px; margin: 0 auto; background: var(--bg-subcard); border: 1px solid var(--border-color); border-radius: 12px; padding: 32px; text-align: center;">
+          <img id="pageProfileAvatar" class="roblox-avatar" data-userid="" src="" alt="Avatar" style="width: 90px; height: 90px; border-radius: 50%; background: transparent; margin-bottom: 16px; object-fit: cover;">
+          <h2 id="pageProfileUsername" style="font-size: 24px; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Username</h2>
+          <p id="pageProfileEmail" style="font-size: 13px; color: var(--text-sub); margin-bottom: 24px;">email@domain.com</p>
+
+          <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; text-align: left; display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; font-size: 14px;">
+            <div><b>Roblox Rank:</b> <span id="pageProfileRank" style="color: #38bdf8;">-</span></div>
+            <div><b>Roblox User ID:</b> <span id="pageProfileUserId" style="color: var(--text-main);">-</span></div>
+            <div><b>Country:</b> <span id="pageProfileCountry" style="color: var(--text-main);">-</span></div>
+            <div><b>Birthday:</b> <span id="pageProfileBirthday" style="color: #f59e0b;">-</span></div>
+            <div><b>Account Status:</b> <span id="pageProfileStatus" style="color: #22c55e;">-</span></div>
+            <div><b>Viewer Local Time:</b> <span id="pageProfileViewerTime" style="color: #38bdf8; font-weight: 700;">-</span></div>
+          </div>
+
+          <a id="pageProfileRobloxLink" href="#" target="_blank" class="btn" style="text-decoration: none;">View Roblox Profile</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="sessionDetailModal">
+    <div class="modal-body" style="padding:0; overflow:hidden; width:520px; background:var(--bg-card);">
+      <div style="position:relative; background:#193e00; padding:24px; min-height:140px; display:flex; flex-direction:column; justify-content:flex-end;">
+        <div style="position:absolute; top:12px; right:12px; cursor:pointer; color:#fff; font-size:18px;" onclick="closeSessionDetailModal()">✕</div>
+        <div style="position:absolute; top:0; right:0; width:180px; height:100%; background-image:url('https://i.ibb.co/23SvqXKK/Captura-de-pantalla-2026-11-02-144244.png'); background-size:cover; background-position:center; opacity:0.3; pointer-events:none;"></div>
+        <h3 id="modalSessionTitle" style="font-size:22px; font-weight:800; color:#fff; margin-bottom:4px; position:relative; z-index:2;">Evening in game</h3>
+        <p id="modalSessionSubtitle" style="font-size:12px; color:#cbd5e1; position:relative; z-index:2;">5 Aug, 05:48 PM - 06:10 PM</p>
+      </div>
+
+      <div style="padding:24px; display:flex; flex-direction:column; gap:20px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="color:var(--text-sub);">
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+            </div>
+            <div>
+              <div style="font-size:14px; font-weight:700; color:var(--text-main);">Minutes in game</div>
+              <div style="font-size:12px; color:var(--text-sub);" id="modalSessionMinutes">22 minutes</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="color:var(--text-sub);">
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+            </div>
+            <div>
+              <div style="font-size:14px; font-weight:700; color:var(--text-main);">Messages sent</div>
+              <div style="font-size:12px; color:var(--text-sub);" id="modalSessionMessages">0 messages</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="color:var(--text-sub);">
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            </div>
+            <div>
+              <div style="font-size:14px; font-weight:700; color:var(--text-main);">Friends</div>
+              <div style="font-size:12px; color:var(--text-sub);" id="modalSessionFriends">0 friends</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="prefModal">
+    <div class="modal-body">
+      <h3 style="margin-bottom: 18px; font-size: 20px;">Preferences</h3>
+      
+      <div style="margin-bottom: 16px;">
+        <label>Email Address</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="email" id="prefEmail" style="flex:1;">
+          <button class="btn" style="width: auto; padding: 0 14px;" onclick="handleRequestEmailChange()">Verify</button>
+        </div>
+      </div>
+
+      <div id="emailVerifyCodeSection" style="display:none; background: var(--bg-subcard); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+        <label>Enter Email Code</label>
+        <div style="display: flex; gap: 8px; margin-top: 4px;">
+          <input type="text" id="prefEmailCode" placeholder="123456" maxlength="6" style="text-align:center; font-weight:bold; letter-spacing:2px;">
+          <button class="btn" style="width: auto; padding: 0 14px;" onclick="handleConfirmEmailChange()">Confirm</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label>Country</label>
+        <select id="prefCountry" style="width:100%; padding:10px; background:var(--bg-subcard); border:1px solid var(--border-color); color:var(--text-main); border-radius:6px; margin-top:4px;">
+          <option value="">Select Country</option>
+          <option value="United States">United States</option><option value="United Kingdom">United Kingdom</option><option value="Canada">Canada</option><option value="Spain">Spain</option><option value="Australia">Australia</option><option value="Germany">Germany</option><option value="France">France</option><option value="Italy">Italy</option><option value="Brazil">Brazil</option><option value="Mexico">Mexico</option><option value="Argentina">Argentina</option><option value="Japan">Japan</option><option value="South Korea">South Korea</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label>Birthday (Month & Day)</label>
+        <div style="display: flex; gap: 10px; margin-top: 4px;">
+          <div style="flex: 2;">
+            <select id="prefBdayMonth" style="width:100%; padding:10px; background:var(--bg-subcard); border:1px solid var(--border-color); color:var(--text-main); border-radius:6px;">
+              <option value="">Month</option>
+              <option value="January">January</option><option value="February">February</option><option value="March">March</option><option value="April">April</option><option value="May">May</option><option value="June">June</option><option value="July">July</option><option value="August">August</option><option value="September">September</option><option value="October">October</option><option value="November">November</option><option value="December">December</option>
+            </select>
+          </div>
+          <div style="flex: 1;">
+            <input type="number" id="prefBdayDay" min="1" max="31" placeholder="DD" style="width:100%; padding:10px; background:var(--bg-subcard); border:1px solid var(--border-color); color:var(--text-main); border-radius:6px;">
+          </div>
+        </div>
+      </div>
+
+      <button class="btn" onclick="saveGeneralPref()">Save General Settings</button>
+
+      <hr style="border-color:var(--border-color); margin: 20px 0;">
+
+      <div id="passwordSection">
+        <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 10px;">Change Password</h4>
+        <input type="password" id="currPass" placeholder="Current Password" style="width:100%; padding:10px; background:var(--bg-subcard); border:1px solid var(--border-color); color:var(--text-main); border-radius:6px; margin-bottom:8px;">
+        <input type="password" id="newPass" placeholder="New Password" style="width:100%; padding:10px; background:var(--bg-subcard); border:1px solid var(--border-color); color:var(--text-main); border-radius:6px; margin-bottom:12px;">
+        <button class="btn btn-secondary" onclick="handleChangePassword()">Update Password</button>
+      </div>
+
+      <button class="btn btn-secondary" style="margin-top:20px;" onclick="closePreferences()">Close</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="loaApprovalModal">
+    <div class="modal-body" style="text-align: center;">
+      <h3 style="color: #22c55e; margin-bottom: 12px; font-size: 20px;">LoA Approved Successfully!</h3>
+      <p style="font-size: 13px; color: var(--text-sub); line-height: 1.6; margin-bottom: 16px;">
+        As you approved the LoA, please change the nickname of the server for the user and add "[LOA]". Copy this message from below and paste it into the Discord username nickname:
+      </p>
+      
+      <div style="background: var(--bg-subcard); border: 1px solid var(--border-color); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 14px; color: #38bdf8; margin-bottom: 16px; word-break: break-all;" id="loaCopyText">
+        [LOA] Username
+      </div>
+
+      <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 20px;">
+        The LoA has been logged successfully in our systems.
+      </p>
+
+      <button class="btn" onclick="closeLoAApprovalModal()">Okay</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="loaRejectModal">
+    <div class="modal-body">
+      <h3 style="font-size: 20px; color: #ef4444; margin-bottom: 8px;">Reject LoA Request</h3>
+      <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 16px;">Please specify a reason for rejecting this request.</p>
+      
+      <input type="hidden" id="rejectReqIdStore">
+      
+      <div class="form-group">
+        <label>Rejection Reason</label>
+        <textarea id="rejectReasonInput" style="height: 100px; resize: none;" placeholder="Explain reason for rejection..."></textarea>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 16px;">
+        <button class="btn" style="background:#dc2626;" onclick="confirmRejectLoA()">Confirm Rejection</button>
+        <button class="btn btn-secondary" style="margin-top:0;" onclick="closeRejectModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+    var currentEmail = localStorage.getItem("wingyEmail") || "";
+    var currentPassword = "";
+    var currentUser = null;
+    var targetNewEmail = "";
+
+    async function callBackendAPI(payload) {
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+        return await response.json();
+      } catch (err) {
+        throw new Error(err.message || "Network communication error.");
+      }
+    }
+
+    async function callBackendGET(action, params = {}) {
+      try {
+        const urlParams = new URLSearchParams({ action: action, ...params });
+        const response = await fetch(`${API_URL}?${urlParams.toString()}`);
+        return await response.json();
+      } catch (err) {
+        throw new Error(err.message || "Network communication error.");
+      }
+    }
+
+    function cleanDisplayBirthday(raw) {
+      if (!raw || raw.toString().trim() === "" || raw.toString().trim() === "Skipped") return "Skipped";
+      var str = raw.toString().trim();
+      var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      
+      var parts = str.replace(/,/g, "").split(/\s+/);
+      if (parts.length >= 2) {
+        var mStr = parts[0].toLowerCase();
+        var mIdx = months.findIndex(m => m.toLowerCase().startsWith(mStr));
+        var dNum = parseInt(parts[1], 10);
+        if (mIdx !== -1 && !isNaN(dNum)) {
+          return months[mIdx] + " " + dNum;
+        }
+      }
+
+      var parsed = Date.parse(str);
+      if (!isNaN(parsed)) {
+        var d = new Date(parsed);
+        return months[d.getMonth()] + " " + d.getDate();
+      }
+
+      return str;
+    }
+
+    window.addEventListener('DOMContentLoaded', async function() {
+      var savedEmail = localStorage.getItem("wingyEmail");
+      var isLoggedOut = localStorage.getItem("wingyLoggedOut");
+
+      if (savedEmail && isLoggedOut !== "true") {
+        currentEmail = savedEmail;
+        showLoading("Restoring session...");
+        try {
+          const res = await callBackendAPI({ action: "checkUserStatus", email: savedEmail });
+          hideLoading();
+          if (res && res.success && res.user) {
+            routeUser(res.user);
+          } else {
+            switchView("viewSignIn");
+          }
+        } catch(err) {
+          hideLoading();
+          switchView("viewSignIn");
+        }
+      } else {
+        switchView("viewSignIn");
+      }
+    });
+
+    function showToast(msg, type) {
+      type = type || "info";
+      var container = document.getElementById("toastContainer");
+      var toast = document.createElement("div");
+      toast.className = "toast toast-" + type;
+      toast.innerHTML = '<span>' + msg + '</span><span style="cursor:pointer; font-size:16px; margin-left:8px;" onclick="this.parentElement.remove()">×</span>';
+      container.appendChild(toast);
+
+      setTimeout(function() { toast.classList.add("show"); }, 10);
+      setTimeout(function() {
+        toast.classList.remove("show");
+        setTimeout(function() { toast.remove(); }, 300);
+      }, 3500);
+    }
+
+    function showLoading(text) {
+      document.getElementById("loadingText").innerText = text || "Working on it...";
+      document.getElementById("loadingOverlay").classList.add("active");
+    }
+
+    function hideLoading() {
+      document.getElementById("loadingOverlay").classList.remove("active");
+    }
+
+    function showAlert(msg, type) {
+      type = type || "error";
+      var box = document.getElementById("alertBox");
+      if (!box) return;
+      box.className = "alert alert-" + type;
+      box.innerText = msg;
+      box.style.display = "block";
+    }
+
+    function hideAlert() {
+      var box = document.getElementById("alertBox");
+      if (box) box.style.display = "none";
+    }
+
+    function switchView(viewId) {
+      hideAlert();
+      var views = ['viewSignIn', 'viewRobloxPrompt', 'viewVerify', 'viewBirthday', 'viewForgotPassword', 'viewConfirmReset', 'viewPendingApproval'];
+      for (var i = 0; i < views.length; i++) {
+        var el = document.getElementById(views[i]);
+        if (el) el.style.display = 'none';
+      }
+      var target = document.getElementById(viewId);
+      if (target) target.style.display = 'block';
+    }
+
+    function resetSidebarActive() {
+      document.getElementById("navDashBtn").classList.remove("active");
+      document.getElementById("navDirectoryBtn").classList.remove("active");
+      document.getElementById("navActivityBtn").classList.remove("active");
+      document.getElementById("navLoaBtn").classList.remove("active");
+      document.getElementById("adminSidebarBtn").classList.remove("active");
+    }
+
+    function showDashboardView() {
+      document.getElementById("viewDashboardMain").style.display = "block";
+      document.getElementById("viewStaffDirectory").style.display = "none";
+      document.getElementById("viewActivitySection").style.display = "none";
+      document.getElementById("viewLoAForm").style.display = "none";
+      document.getElementById("viewAdminPortal").style.display = "none";
+      document.getElementById("viewRegisteredUserProfile").style.display = "none";
+      resetSidebarActive();
+      document.getElementById("navDashBtn").classList.add("active");
+    }
+
+    function showStaffDirectoryView() {
+      document.getElementById("viewDashboardMain").style.display = "none";
+      document.getElementById("viewStaffDirectory").style.display = "block";
+      document.getElementById("viewActivitySection").style.display = "none";
+      document.getElementById("viewLoAForm").style.display = "none";
+      document.getElementById("viewAdminPortal").style.display = "none";
+      document.getElementById("viewRegisteredUserProfile").style.display = "none";
+      resetSidebarActive();
+      document.getElementById("navDirectoryBtn").classList.add("active");
+      loadStaffDirectory();
+    }
+
+    function showActivityView() {
+      document.getElementById("viewDashboardMain").style.display = "none";
+      document.getElementById("viewStaffDirectory").style.display = "none";
+      document.getElementById("viewActivitySection").style.display = "block";
+      document.getElementById("viewLoAForm").style.display = "none";
+      document.getElementById("viewAdminPortal").style.display = "none";
+      document.getElementById("viewRegisteredUserProfile").style.display = "none";
+      resetSidebarActive();
+      document.getElementById("navActivityBtn").classList.add("active");
+      switchActivitySubTab('history');
+    }
+
+    function switchActivitySubTab(sub) {
+      document.getElementById("btnActTabHistory").classList.remove("active");
+      document.getElementById("btnActTabLeaderboard").classList.remove("active");
+      document.getElementById("activityHistorySubView").style.display = "none";
+      document.getElementById("activityLeaderboardSubView").style.display = "none";
+
+      if (sub === 'history') {
+        document.getElementById("btnActTabHistory").classList.add("active");
+        document.getElementById("activityHistorySubView").style.display = "block";
+        loadUserActivityHistory();
+      } else if (sub === 'leaderboard') {
+        document.getElementById("btnActTabLeaderboard").classList.add("active");
+        document.getElementById("activityLeaderboardSubView").style.display = "block";
+        loadLeaderboardData();
+      }
+    }
+
+    function getMondayKey(d) {
+      var date = new Date(d);
+      var day = date.getDay();
+      var diff = date.getDate() - day + (day === 0 ? -6 : 1);
+      var monday = new Date(date.setDate(diff));
+      return monday.toISOString().split('T')[0];
+    }
+
+    async function loadUserActivityHistory() {
+      var container = document.getElementById("activityLogsListContainer");
+      container.innerHTML = '<p style="font-size:13px; color:var(--text-sub);">Loading history...</p>';
+      showLoading("Loading activity...");
+
+      try {
+        const res = await callBackendAPI({
+          action: "getUserActivityData",
+          userId: currentUser.robloxUserId,
+          weekKey: ""
+        });
+        hideLoading();
+        if (!res || !res.success) {
+          container.innerHTML = '<p style="font-size:13px; color:var(--text-sub);">Could not load activity.</p>';
+          return;
+        }
+
+        document.getElementById("actStatMinutes").innerText = res.stats.minutes;
+        document.getElementById("actStatMessages").innerText = res.stats.messages;
+        document.getElementById("actStatAvg").innerText = res.stats.averageMinutes;
+
+        var gridHtml = "";
+        for (var i = 0; i < 84; i++) {
+          var bg = "#1e293b";
+          if (i > 70) bg = "#0284c7";
+          else if (i > 78) bg = "#38bdf8";
+          gridHtml += '<div style="width:100%; height:14px; background:' + bg + '; border-radius:2px;" title="Activity block"></div>';
+        }
+        document.getElementById("activityGridHeatmap").innerHTML = gridHtml;
+
+        if (!res.sessions || res.sessions.length === 0) {
+          container.innerHTML = '<div style="background:var(--bg-subcard); padding:20px; border-radius:12px; border:1px solid var(--border-color); text-align:center;"><p style="font-size:13px; color:var(--text-sub);">No activity logged yet.</p></div>';
+          return;
+        }
+
+        var listHtml = "";
+        res.sessions.forEach(function(sess) {
+          var startTimeStr = sess.startTime ? new Date(sess.startTime).toLocaleString() : "Recently";
+          var inGameBadge = "";
+          var cardStyle = "";
+          if (sess.isInGame) {
+            inGameBadge = '<span style="background:rgba(34,197,94,0.2); color:#4ade80; border:1px solid #22c55e; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700; margin-left:8px;">In-game</span>';
+            cardStyle = 'border-color: #22c55e; background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(30,41,59,0.9));';
+          }
+
+          listHtml += '<div class="admin-req-card" style="cursor:pointer; ' + cardStyle + '" onclick=\'openSessionDetailModal(' + JSON.stringify(sess).replace(/"/g, '&quot;') + ')\'>' +
+              '<div style="color:var(--accent); display:flex; align-items:center; gap:6px;">' +
+                '<svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>' +
+                '<span>▶</span>' +
+              '</div>' +
+              '<div class="admin-req-info">' +
+                '<h3>' + sess.minutesInGame + ' Minutes' + inGameBadge + '</h3>' +
+                '<p>' + startTimeStr + '</p>' +
+              '</div>' +
+              '<div style="font-size:12px; color:var(--text-sub);">View Details →</div>' +
+            '</div>';
+        });
+        container.innerHTML = listHtml;
+      } catch(err) {
+        hideLoading();
+        container.innerHTML = '<p style="font-size:13px; color:#ef4444;">Error loading history.</p>';
+      }
+    }
+
+    function openSessionDetailModal(sess) {
+      document.getElementById("modalSessionMinutes").innerText = sess.minutesInGame + " minutes";
+      document.getElementById("modalSessionMessages").innerText = sess.messagesSent + " messages";
+      document.getElementById("modalSessionFriends").innerText = sess.friendsCount + " friends";
+      document.getElementById("modalSessionTitle").innerText = sess.isInGame ? "Currently playing in game" : (sess.minutesInGame > 30 ? "Long session in game" : "Evening in game");
+      document.getElementById("modalSessionSubtitle").innerText = sess.startTime ? new Date(sess.startTime).toLocaleString() : "";
+      document.getElementById("sessionDetailModal").classList.add("active");
+      populateRobloxAvatars();
+    }
+
+    function closeSessionDetailModal() {
+      document.getElementById("sessionDetailModal").classList.remove("active");
+    }
+
+    async function loadLeaderboardData() {
+      var pickerVal = document.getElementById("leaderboardWeekPicker").value;
+      var weekKey = pickerVal ? getMondayKey(pickerVal) : "";
+
+      showLoading("Loading leaderboard...");
+      try {
+        const res = await callBackendAPI({ action: "getLeaderboardData", weekKey: weekKey });
+        hideLoading();
+        if (!res || !res.success) return;
+
+        var lb = res.leaderboard || [];
+        var topThreeContainer = document.getElementById("leaderboardTopThree");
+        
+        if (lb.length === 0) {
+          topThreeContainer.innerHTML = '<p style="font-size:13px; color:var(--text-sub);">No leaderboard data for this week.</p>';
+          document.getElementById("leaderboardUserRankText").innerText = "--. You";
+          document.getElementById("leaderboardUserMinsText").innerText = "0 minutes";
+          return;
+        }
+
+        var topHtml = "";
+        for (var i = 0; i < Math.min(3, lb.length); i++) {
+          var user = lb[i];
+          var rankNum = i + 1;
+          var suffix = rankNum === 1 ? "st" : (rankNum === 2 ? "nd" : "rd");
+          topHtml += '<div style="background:var(--bg-subcard); border:1px solid var(--border-color); border-radius:12px; padding:16px; text-align:center;">' +
+              '<img class="roblox-avatar" data-userid="' + user.userId + '" src="" alt="Avatar" style="width:60px; height:60px; border-radius:50%; margin-bottom:8px; object-fit:cover;">' +
+              '<h4 style="font-size:14px; font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + user.username + '</h4>' +
+              '<p style="font-size:12px; color:#f59e0b; font-weight:700; margin-top:4px;">' + rankNum + suffix + ' - ' + user.minutes + ' minutes</p>' +
+            '</div>';
+        }
+        topThreeContainer.innerHTML = topHtml;
+
+        var userIndex = lb.findIndex(u => u.userId.toString() === currentUser.robloxUserId.toString());
+        if (userIndex !== -1) {
+          var userRank = userIndex + 1;
+          var rankSuffix = (userRank === 1 ? "st" : (userRank === 2 ? "nd" : (userRank === 3 ? "rd" : "th")));
+          document.getElementById("leaderboardUserRankText").innerText = userRank + rankSuffix + ". You (" + currentUser.robloxUsername + ")";
+          document.getElementById("leaderboardUserMinsText").innerText = lb[userIndex].minutes + " minutes";
+        } else {
+          document.getElementById("leaderboardUserRankText").innerText = "--. You (" + currentUser.robloxUsername + ")";
+          document.getElementById("leaderboardUserMinsText").innerText = "0 minutes";
+        }
+
+        populateRobloxAvatars();
+      } catch(err) {
+        hideLoading();
+      }
+    }
+
+    function showLoaView() {
+      document.getElementById("viewDashboardMain").style.display = "none";
+      document.getElementById("viewStaffDirectory").style.display = "none";
+      document.getElementById("viewActivitySection").style.display = "none";
+      document.getElementById("viewLoAForm").style.display = "block";
+      document.getElementById("viewAdminPortal").style.display = "none";
+      document.getElementById("viewRegisteredUserProfile").style.display = "none";
+      resetSidebarActive();
+      document.getElementById("navLoaBtn").classList.add("active");
+    }
+
+    function showAdminPortalView() {
+      document.getElementById("viewDashboardMain").style.display = "none";
+      document.getElementById("viewStaffDirectory").style.display = "none";
+      document.getElementById("viewActivitySection").style.display = "none";
+      document.getElementById("viewLoAForm").style.display = "none";
+      document.getElementById("viewAdminPortal").style.display = "block";
+      document.getElementById("viewRegisteredUserProfile").style.display = "none";
+      resetSidebarActive();
+      document.getElementById("adminSidebarBtn").classList.add("active");
+      switchAdminSubTab('verifications');
+    }
+
+    function switchAdminSubTab(tab) {
+      document.getElementById("btnAdminTabVerif").classList.remove("active");
+      document.getElementById("btnAdminTabUsers").classList.remove("active");
+      document.getElementById("btnAdminTabStaffActivity").classList.remove("active");
+      document.getElementById("btnAdminTabLoa").classList.remove("active");
+
+      document.getElementById("adminPortalRequestsList").style.display = "none";
+      document.getElementById("adminRegisteredUsersSection").style.display = "none";
+      document.getElementById("adminStaffActivitySection").style.display = "none";
+      document.getElementById("adminLoaManagementSection").style.display = "none";
+      document.getElementById("viewRegisteredUserProfile").style.display = "none";
+
+      if (tab === 'verifications') {
+        document.getElementById("btnAdminTabVerif").classList.add("active");
+        document.getElementById("adminPortalRequestsList").style.display = "block";
+        loadAdminPortalRequests();
+      } else if (tab === 'registered_users') {
+        document.getElementById("btnAdminTabUsers").classList.add("active");
+        document.getElementById("adminRegisteredUsersSection").style.display = "block";
+        loadAdminRegisteredUsers();
+      } else if (tab === 'staff_activity') {
+        document.getElementById("btnAdminTabStaffActivity").classList.add("active");
+        document.getElementById("adminStaffActivitySection").style.display = "block";
+        loadAdminStaffActivity();
+      } else if (tab === 'loa_management') {
+        document.getElementById("btnAdminTabLoa").classList.add("active");
+        document.getElementById("adminLoaManagementSection").style.display = "block";
+        loadAdminLoARequests();
+        loadAdminLoALogs();
+      }
+    }
+
+    async function loadAdminStaffActivity() {
+      var container = document.getElementById("adminStaffActivityList");
+      container.innerHTML = '<p style="font-size: 13px; color: var(--text-sub);">Loading staff members...</p>';
+      showLoading("Loading staff activity...");
+
+      try {
+        const res = await callBackendGET("getStaffDirectoryData");
+        hideLoading();
+        if (!res || !res.success || !res.categories) {
+          container.innerHTML = '<p style="font-size:13px; color:var(--text-sub);">Could not load staff members.</p>';
+          return;
+        }
+
+        var html = "";
+        res.categories.forEach(function(cat) {
+          cat.users.forEach(function(u) {
+            html += '<div class="admin-user-row-card">' +
+                '<img class="roblox-avatar" data-userid="' + u.userId + '" src="" alt="Avatar">' +
+                '<div class="admin-user-row-info">' +
+                  '<h4>' + u.username + ' <span style="font-size:11px; color:#38bdf8;">(' + u.roleName + ')</span></h4>' +
+                  '<p><b>User ID:</b> ' + u.userId + ' | Active staff member</p>' +
+                '</div>' +
+                '<button class="btn" style="width:auto; padding:6px 14px; font-size:12px;" onclick=\'openStaffActivityDetail("' + u.userId + '", "' + u.username + '")\'>View Activity</button>' +
+              '</div>';
+          });
+        });
+
+        container.innerHTML = html || '<p style="font-size:13px; color:var(--text-sub);">No staff found.</p>';
+        populateRobloxAvatars();
+      } catch(err) {
+        hideLoading();
+        container.innerHTML = '<p style="font-size:13px; color:#ef4444;">Error loading staff.</p>';
+      }
+    }
+
+    async function openStaffActivityDetail(userId, username) {
+      showLoading("Loading activity for " + username + "...");
+      var pickerVal = document.getElementById("adminStaffActivityWeekPicker").value;
+      var weekKey = pickerVal ? getMondayKey(pickerVal) : "";
+
+      try {
+        const res = await callBackendAPI({ action: "getUserActivityData", userId: userId, weekKey: weekKey });
+        hideLoading();
+        if (res && res.success) {
+          var stats = res.stats;
+          showToast(username + " - Minutes: " + stats.minutes + ", Messages: " + stats.messages, "info");
+          openSessionDetailModal({
+            minutesInGame: stats.minutes,
+            messagesSent: stats.messages,
+            friendsCount: 0,
+            startTime: new Date().toISOString()
+          });
+        } else {
+          showToast("Could not load user activity.", "error");
+        }
+      } catch(err) {
+        hideLoading();
+        showToast("Error loading activity.", "error");
+      }
+    }
+
+    async function loadAdminRegisteredUsers() {
+      var container = document.getElementById("adminRegisteredUsersList");
+      container.innerHTML = '<p style="font-size: 13px; color: var(--text-sub);">Loading registered users...</p>';
+      showLoading("Loading registered users...");
+
+      try {
+        const res = await callBackendAPI({ action: "getAllRegisteredUsers", callerEmail: currentUser.email });
+        if (!res || !res.success || !res.users || res.users.length === 0) {
+          container.innerHTML = '<div style="background:var(--bg-subcard); padding:20px; border-radius:12px; border:1px solid var(--border-color); text-align:center;"><p style="font-size: 14px; color: var(--text-sub);">No registered users found.</p></div>';
+          populateRobloxAvatars(function() { hideLoading(); });
+          return;
+        }
+
+        var html = "";
+        res.users.forEach(function(u) {
+          var dataJSON = JSON.stringify(u).replace(/"/g, '&quot;');
+          html += '<div class="admin-user-row-card" onclick=\'openRegisteredUserProfilePage(' + dataJSON + ')\'>' +
+              '<img class="roblox-avatar" data-userid="' + u.robloxUserId + '" src="" alt="Avatar">' +
+              '<div class="admin-user-row-info">' +
+                '<h4>' + u.robloxUsername + ' <span style="font-size:11px; color:#38bdf8; font-weight:600;">(' + u.robloxRank + ')</span></h4>' +
+                '<p><b>Email:</b> ' + u.email + ' | <b>ID:</b> ' + u.robloxUserId + '</p>' +
+              '</div>' +
+              '<div style="font-size:12px; color:var(--text-sub);">View Profile →</div>' +
+            '</div>';
+        });
+
+        container.innerHTML = html;
+        populateRobloxAvatars(function() { hideLoading(); });
+      } catch(err) {
+        hideLoading();
+        container.innerHTML = '<p style="font-size: 13px; color: #ef4444;">Error loading users: ' + err.message + '</p>';
+      }
+    }
+
+    function openRegisteredUserProfilePage(u) {
+      document.getElementById("adminRegisteredUsersSection").style.display = "none";
+      document.getElementById("adminPortalRequestsList").style.display = "none";
+      document.getElementById("adminLoaManagementSection").style.display = "none";
+      
+      document.getElementById("pageProfileAvatar").setAttribute("data-userid", u.robloxUserId);
+      document.getElementById("pageProfileUsername").innerText = u.robloxUsername;
+      document.getElementById("pageProfileEmail").innerText = u.email;
+      document.getElementById("pageProfileRank").innerText = u.robloxRank;
+      document.getElementById("pageProfileUserId").innerText = u.robloxUserId;
+      document.getElementById("pageProfileCountry").innerText = u.country || "Not specified";
+      document.getElementById("pageProfileBirthday").innerText = cleanDisplayBirthday(u.birthday);
+      document.getElementById("pageProfileStatus").innerText = u.status;
+      document.getElementById("pageProfileRobloxLink").href = "https://www.roblox.com/users/" + u.robloxUserId + "/profile";
+
+      var viewerNow = new Date();
+      var timeFormatter = new Intl.DateTimeFormat(undefined, {
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        timeZoneName: 'long'
+      });
+      document.getElementById("pageProfileViewerTime").innerText = timeFormatter.format(viewerNow);
+
+      document.getElementById("viewRegisteredUserProfile").style.display = "block";
+      populateRobloxAvatars();
+    }
+
+    function backToRegisteredUsersList() {
+      document.getElementById("viewRegisteredUserProfile").style.display = "none";
+      document.getElementById("adminRegisteredUsersSection").style.display = "block";
+    }
+
+    function toggleLoAOtherReason() {
+      var val = document.getElementById("loaReasonSelect").value;
+      if (val === "Other") {
+        document.getElementById("loaOtherGroup").style.display = "block";
+        document.getElementById("loaReasonOther").setAttribute("required", "true");
+      } else {
+        document.getElementById("loaOtherGroup").style.display = "none";
+        document.getElementById("loaReasonOther").removeAttribute("required");
+      }
+    }
+
+    async function handleSubmitLoA(e) {
+      e.preventDefault();
+      var reasonSel = document.getElementById("loaReasonSelect").value;
+      var reason = reasonSel;
+      if (reasonSel === "Other") {
+        reason = "Other: " + document.getElementById("loaReasonOther").value.trim();
+      }
+
+      var startStr = document.getElementById("loaStartDate").value;
+      var endStr = document.getElementById("loaEndDate").value;
+
+      if (!startStr || !endStr) {
+        showToast("Please select valid start and end dates.", "error");
+        return;
+      }
+
+      var startDate = new Date(startStr + "T00:00:00");
+      var endDate = new Date(endStr + "T00:00:00");
+
+      var now = new Date();
+      var todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      var dayOfWeek = todayMidnight.getDay();
+      var diffToMonday = todayMidnight.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+      var currentWeekMonday = new Date(todayMidnight.setDate(diffToMonday));
+
+      if (startDate.getDay() !== 1) {
+        showToast("Start date must be a Monday.", "error");
+        return;
+      }
+
+      if (endDate.getDay() !== 1) {
+        showToast("End date must be a Monday.", "error");
+        return;
+      }
+
+      if (startDate <= currentWeekMonday) {
+        showToast("Start date cannot be in the current week or past weeks. Must be at least next Monday.", "error");
+        return;
+      }
+
+      if (endDate <= startDate) {
+        showToast("End date must be at least one week after start date.", "error");
+        return;
+      }
+
+      showLoading("Submitting LoA request...");
+      try {
+        const res = await callBackendAPI({
+          action: "requestLoA",
+          email: currentUser.email,
+          reason: reason,
+          startDate: startStr,
+          endDate: endStr
+        });
+        hideLoading();
+        if (res && res.success) {
+          showToast("LoA Request submitted successfully!", "success");
+          showDashboardView();
+        } else {
+          showToast(res ? res.message : "Error submitting request.", "error");
+        }
+      } catch(err) {
+        hideLoading();
+        showToast("Error: " + err.message, "error");
+      }
+    }
+
+    async function loadAdminLoARequests() {
+      var reqContainer = document.getElementById("adminLoaRequestsList");
+      var oofContainer = document.getElementById("outOfOfficeScrollContainer");
+      
+      reqContainer.innerHTML = '<p style="font-size: 13px; color: var(--text-sub);">Loading pending requests...</p>';
+      oofContainer.innerHTML = '<p style="font-size: 13px; color: var(--text-sub);">Loading active LoAs...</p>';
+      showLoading("Loading LoA portal data...");
+      
+      try {
+        const pendingRes = await callBackendAPI({ action: "getPendingLoARequests", callerEmail: currentUser.email });
+        var pendingCount = (pendingRes && pendingRes.success && pendingRes.requests) ? pendingRes.requests.length : 0;
+        document.getElementById("metricPendingReqs").innerText = pendingCount;
+
+        if (!pendingRes || !pendingRes.success || !pendingRes.requests || pendingRes.requests.length === 0) {
+          reqContainer.innerHTML = '<div style="background:var(--bg-subcard); padding:20px; border-radius:12px; border:1px solid var(--border-color); text-align:center;"><p style="font-size: 14px; color: var(--text-sub);">No pending LoA requests.</p></div>';
+        } else {
+          var reqHtml = "";
+          pendingRes.requests.forEach(function(req) {
+            reqHtml += '<div class="pending-req-box">' +
+                '<div class="pending-req-header">' +
+                  '<img class="roblox-avatar" data-userid="' + req.robloxUserId + '" src="" alt="Avatar">' +
+                  '<div class="pending-req-title">' +
+                    '<h4>' + req.robloxUsername + ' <span style="font-size:11px; color:#38bdf8;">(' + req.robloxRank + ')</span></h4>' +
+                    '<p><b>Duration:</b> ' + req.startDate + ' - ' + req.endDate + '</p>' +
+                  '</div>' +
+                  '<div style="margin-left:auto; display:flex; gap:8px;">' +
+                    '<button class="btn" style="background:#16a34a; padding:6px 14px; font-size:12px;" onclick="approveLoA(\'' + req.reqId + '\')">Accept</button>' +
+                    '<button class="btn" style="background:#dc2626; padding:6px 14px; font-size:12px;" onclick="openRejectModal(\'' + req.reqId + '\')">Reject</button>' +
+                  '</div>' +
+                '</div>' +
+                '<div class="pending-req-reason">' +
+                  '<b>Reason:</b> ' + req.reason +
+                '</div>' +
+                '<div class="pending-req-footer">' +
+                  '<span>Submitted ' + (req.timestamp ? new Date(req.timestamp).toLocaleString() : 'Recently') + '</span>' +
+                  '<span>ReqID: ' + req.reqId + '</span>' +
+                '</div>' +
+              '</div>';
+          });
+          reqContainer.innerHTML = reqHtml;
+        }
+
+        const logsRes = await callBackendAPI({ action: "getLoALogs", callerEmail: currentUser.email });
+        var ongoingList = [];
+        if (logsRes && logsRes.success && logsRes.logs) {
+          ongoingList = logsRes.logs.filter(l => l.status === "ONGOING");
+        }
+        document.getElementById("metricStaffOut").innerText = ongoingList.length;
+
+        if (ongoingList.length === 0) {
+          oofContainer.innerHTML = '<p style="font-size: 13px; color: var(--text-sub);">No staff currently out of office.</p>';
+        } else {
+          var oofHtml = "";
+          ongoingList.forEach(function(log) {
+            oofHtml += '<div class="oof-card">' +
+                '<img class="roblox-avatar" data-userid="' + log.robloxUserId + '" src="" alt="Avatar">' +
+                '<h4 title="' + log.robloxUsername + '">' + log.robloxUsername + '</h4>' +
+                '<p>Until ' + log.endDate + '</p>' +
+              '</div>';
+          });
+          oofContainer.innerHTML = oofHtml;
+        }
+
+        renderAdminLogsTable(logsRes);
+        populateRobloxAvatars(function() { hideLoading(); });
+      } catch(err) {
+        hideLoading();
+      }
+    }
+
+    function renderAdminLogsTable(logsRes) {
+      var container = document.getElementById("adminLoaLogsList");
+      if (!logsRes || !logsRes.success || !logsRes.logs || logsRes.logs.length === 0) {
+        container.innerHTML = '<div style="background:var(--bg-subcard); padding:20px; border-radius:12px; border:1px solid var(--border-color); text-align:center;"><p style="font-size: 14px; color: var(--text-sub);">No logged LoAs found.</p></div>';
+        return;
+      }
+
+      var html = "";
+      logsRes.logs.forEach(function(log) {
+        var statusBadge = '<span style="color:#22c55e; font-weight:700;">[ONGOING]</span>';
+        if (log.status === "ENDED EARLY") statusBadge = '<span style="color:#ef4444; font-weight:700;">[ENDED EARLY]</span>';
+        if (log.status === "COMPLETED") statusBadge = '<span style="color:#94a3b8; font-weight:700;">[COMPLETED]</span>';
+
+        var endEarlyBtn = "";
+        if (log.status === "ONGOING") {
+          endEarlyBtn = '<button class="btn btn-secondary" style="padding:6px 12px; font-size:11px;" onclick="handleEndLoAEarly(\'' + log.logId + '\')">End LoA Early</button>';
+        }
+
+        html += '<div class="admin-req-card">' +
+            '<img class="roblox-avatar" data-userid="' + log.robloxUserId + '" src="" alt="Avatar">' +
+            '<div class="admin-req-info">' +
+              '<h3>' + log.robloxUsername + ' ' + statusBadge + '</h3>' +
+              '<p><b>Approved By:</b> ' + log.approvedBy + ' | <b>User ID:</b> ' + log.robloxUserId + '</p>' +
+              '<p><b>Reason:</b> ' + log.reason + '</p>' +
+              '<p><b>Dates:</b> ' + log.startDate + ' to ' + log.endDate + '</p>' +
+            '</div>' +
+            '<div>' +
+              endEarlyBtn +
+            '</div>' +
+          '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    async function approveLoA(reqId) {
+      showLoading("Approving LoA...");
+      try {
+        const res = await callBackendAPI({
+          action: "processLoARequest",
+          callerEmail: currentUser.email,
+          reqId: reqId,
+          actionType: "APPROVE",
+          rejectReason: ""
+        });
+        hideLoading();
+        if (res && res.success) {
+          document.getElementById("loaCopyText").innerText = "[LOA] " + res.robloxUser;
+          document.getElementById("loaApprovalModal").classList.add("active");
+          loadAdminLoARequests();
+        } else {
+          showToast(res ? res.message : "Error approving request.", "error");
+        }
+      } catch(err) {
+        hideLoading();
+        showToast("Error: " + err.message, "error");
+      }
+    }
+
+    function closeLoAApprovalModal() {
+      document.getElementById("loaApprovalModal").classList.remove("active");
+    }
+
+    function openRejectModal(reqId) {
+      document.getElementById("rejectReqIdStore").value = reqId;
+      document.getElementById("rejectReasonInput").value = "";
+      document.getElementById("loaRejectModal").classList.add("active");
+    }
+
+    function closeRejectModal() {
+      document.getElementById("loaRejectModal").classList.remove("active");
+    }
+
+    async function confirmRejectLoA() {
+      var reqId = document.getElementById("rejectReqIdStore").value;
+      var reason = document.getElementById("rejectReasonInput").value.trim();
+
+      if (!reason) {
+        showToast("Please write a rejection reason.", "error");
+        return;
+      }
+
+      closeRejectModal();
+      showLoading("Rejecting LoA...");
+      try {
+        const res = await callBackendAPI({
+          action: "processLoARequest",
+          callerEmail: currentUser.email,
+          reqId: reqId,
+          actionType: "REJECT",
+          rejectReason: reason
+        });
+        hideLoading();
+        if (res && res.success) {
+          showToast("LoA request rejected.", "info");
+          loadAdminLoARequests();
+        } else {
+          showToast(res ? res.message : "Error rejecting request.", "error");
+        }
+      } catch(err) {
+        hideLoading();
+        showToast("Error: " + err.message, "error");
+      }
+    }
+
+    function loadAdminLoALogs() {
+      loadAdminLoARequests();
+    }
+
+    async function handleEndLoAEarly(logId) {
+      showLoading("Ending LoA early...");
+      try {
+        const res = await callBackendAPI({
+          action: "endLoAEarly",
+          callerEmail: currentUser.email,
+          logId: logId
+        });
+        hideLoading();
+        if (res && res.success) {
+          showToast("LoA ended early successfully.", "info");
+          loadAdminLoARequests();
+        } else {
+          showToast(res ? res.message : "Error ending LoA.", "error");
+        }
+      } catch(err) {
+        hideLoading();
+        showToast("Error: " + err.message, "error");
+      }
+    }
+
+    async function checkAndShowLoANotifications(userEmail) {
+      try {
+        const res = await callBackendAPI({ action: "checkLoANotifications", email: userEmail });
+        if (res && res.hasNotif) {
+          if (res.status === "APPROVED") {
+            showToast("Your Leave of Absence request for '" + res.reason + "' was APPROVED by " + res.adminUser + "! Check your email for details.", "success");
+          } else if (res.status === "REJECTED") {
+            showToast("Your Leave of Absence request for '" + res.reason + "' was DENIED by " + res.adminUser + ". Reason: " + (res.rejectReason || "None") + ". Check email for details.", "error");
+          }
+        }
+      } catch(e) {}
+    }
+
+    async function loadStaffDirectory() {
+      var container = document.getElementById("staffDirectoryContainer");
+      container.innerHTML = '<p style="font-size: 13px; color: var(--text-sub);">Loading directory...</p>';
+      showLoading("Loading staff directory...");
+
+      try {
+        const res = await callBackendGET("getStaffDirectoryData");
+        if (!res || !res.success || !res.categories || res.categories.length === 0) {
+          container.innerHTML = '<p style="font-size: 13px; color: var(--text-sub);">No staff directory data available.</p>';
+          hideLoading();
+          return;
+        }
+
+        var colors = ['#38bdf8', '#ef4444', '#22c55e', '#a855f7', '#f59e0b', '#ec4899', '#6366f1'];
+        var html = "";
+
+        res.categories.forEach(function(cat, idx) {
+          if (cat.memberCount === 0) return;
+          
+          var dotColor = colors[idx % colors.length];
+
+          html += '<div class="staff-category-box">' +
+              '<div class="staff-category-header">' +
+                '<span class="staff-rank-dot" style="background:' + dotColor + ';"></span>' +
+                '<span>' + cat.roleName + '</span>' +
+                '<span class="staff-count-badge">' + cat.memberCount + '</span>' +
+              '</div>' +
+              '<div class="staff-grid">';
+
+          cat.users.forEach(function(u) {
+            html += '<div class="staff-user-card">' +
+                '<img class="roblox-avatar" data-userid="' + u.userId + '" src="" alt="Avatar">' +
+                '<div class="staff-user-info">' +
+                  '<h4>' + u.username + '</h4>' +
+                  '<p>' + u.roleName + '</p>' +
+                '</div>' +
+              '</div>';
+          });
+
+          html += '</div></div>';
+        });
+
+        container.innerHTML = html;
+        populateRobloxAvatars(function() { hideLoading(); });
+      } catch(err) {
+        hideLoading();
+        container.innerHTML = '<p style="font-size:13px; color:#ef4444;">Error loading directory.</p>';
+      }
+    }
+
+    async function populateRobloxAvatars(callback) {
+      var elements = document.querySelectorAll('.roblox-avatar');
+      var userIds = [];
+      elements.forEach(function(el) {
+        var uid = el.getAttribute('data-userid');
+        if (uid && uid.trim() !== "") {
+          userIds.push(uid.trim());
+        }
+      });
+
+      if (userIds.length === 0) {
+        if (typeof callback === 'function') callback();
+        return;
+      }
+
+      const cleanIds = Array.from(new Set(userIds.filter(id => id && id.trim() !== "")));
+      try {
+        const response = await fetch('https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=' + cleanIds.join(',') + '&size=150x150&format=Png&isCircular=true');
+        const data = await response.json();
+        if (data && data.data) {
+          data.data.forEach(item => {
+            if (item && item.targetId && item.imageUrl) {
+              elements.forEach(function(el) {
+                if (el.getAttribute('data-userid') === item.targetId.toString()) {
+                  el.src = item.imageUrl;
+                }
+              });
+            }
+          });
+        }
+      } catch(e) {}
+      if (typeof callback === 'function') callback();
+    }
+
+    function parseMonthIndex(mStr) {
+      if (!mStr) return -1;
+      var clean = mStr.toString().trim().toLowerCase();
+      var months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+      var shortMonths = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+      
+      var idx = months.indexOf(clean);
+      if (idx !== -1) return idx;
+      
+      idx = shortMonths.indexOf(clean.substring(0,3));
+      if (idx !== -1) return idx;
+      
+      var num = parseInt(clean, 10);
+      if (!isNaN(num) && num >= 1 && num <= 12) return num - 1;
+      
+      return -1;
+    }
+
+    function getDaysUntilBirthday(bdayStr) {
+      if (!bdayStr || bdayStr === "Skipped") return null;
+      var now = new Date();
+      var currentYear = now.getFullYear();
+      
+      var monthIdx = -1;
+      var dayNum = -1;
+
+      if (bdayStr instanceof Date || !isNaN(Date.parse(bdayStr))) {
+        var d = new Date(bdayStr);
+        monthIdx = d.getMonth();
+        dayNum = d.getDate();
+      } else {
+        var parts = bdayStr.toString().trim().replace(/,/g, "").split(/\s+/);
+        if (parts.length >= 2) {
+          monthIdx = parseMonthIndex(parts[0]);
+          dayNum = parseInt(parts[1], 10);
+        } else if (bdayStr.includes("/")) {
+          var slashParts = bdayStr.split("/");
+          if (slashParts.length >= 2) {
+            monthIdx = parseInt(slashParts[0], 10) - 1;
+            dayNum = parseInt(slashParts[1], 10);
+          }
+        }
+      }
+
+      if (monthIdx === -1 || isNaN(dayNum) || dayNum < 1 || dayNum > 31) return null;
+
+      var todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var bdayThisYear = new Date(currentYear, monthIdx, dayNum);
+
+      if (bdayThisYear < todayMidnight) {
+        bdayThisYear = new Date(currentYear + 1, monthIdx, dayNum);
+      }
+
+      var diffTime = bdayThisYear - todayMidnight;
+      var diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays >= 0 && diffDays <= 7) {
+        return diffDays;
+      }
+      return null;
+    }
+
+    function playBirthdaySounds() {
+      try {
+        var AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        var ctx = new AudioCtx();
+
+        var bufferSize = ctx.sampleRate * 2.0;
+        var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        var data = buffer.getChannelData(0);
+        for (var i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        var noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        var filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 1200;
+        filter.Q.value = 3;
+
+        var nGain = ctx.createGain();
+        nGain.gain.setValueAtTime(0.25, ctx.currentTime);
+        nGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.8);
+
+        noise.connect(filter);
+        filter.connect(nGain);
+        nGain.connect(ctx.destination);
+        noise.start();
+      } catch(e) {}
+    }
+
+    function fireConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 } });
+      }
+    }
+
+    function triggerUserBirthdayCelebration(username) {
+      playBirthdaySounds();
+      fireConfetti();
+
+      var overlay = document.getElementById("birthdayOverlay");
+      var textEl = document.getElementById("bdayOverlayText");
+      textEl.innerText = "Happy Birthday, " + username + "! 🎂🎉";
+      overlay.classList.add("active");
+
+      setTimeout(function() {
+        overlay.classList.remove("active");
+      }, 5000);
+    }
+
+    function handleSignOut() {
+      localStorage.removeItem("wingyEmail");
+      localStorage.setItem("wingyLoggedOut", "true");
+      currentUser = null;
+      currentEmail = "";
+      document.getElementById("dashContainer").style.display = "none";
+      document.getElementById("authCard").style.display = "block";
+      document.getElementById("authBg").style.display = "block";
+      document.querySelector("footer").style.display = "block";
+      switchView("viewSignIn");
+      var form = document.getElementById("signInForm");
+      if (form) form.reset();
+      showToast("Signed out successfully.", "info");
+    }
+
+    async function handleAuth(e) {
+      e.preventDefault();
+      hideAlert();
+      var email = document.getElementById("loginEmail").value.trim();
+      var pass = document.getElementById("loginPassword").value;
+
+      currentEmail = email;
+      currentPassword = pass;
+
+      showLoading("Signing in...");
+      try {
+        const res = await callBackendAPI({ action: "handleAuthSubmission", email: email, password: pass });
+        hideLoading();
+        if (!res) { showAlert("Server returned empty response."); return; }
+        if (res.actionRequired === "LOGIN_SUCCESS") {
+          localStorage.setItem("wingyEmail", currentEmail);
+          localStorage.removeItem("wingyLoggedOut");
+          routeUser(res.user);
+        } else if (res.actionRequired === "COLLECT_ROBLOX") {
+          switchView("viewRobloxPrompt");
+        } else if (res.actionRequired === "ERROR") {
+          showAlert(res.message);
+        }
+      } catch(err) {
+        hideLoading();
+        showAlert("Error: " + err.message);
+      }
+    }
+
+    async function handleRobloxSetup(e) {
+      e.preventDefault();
+      hideAlert();
+      var robloxUser = document.getElementById("promptRobloxUser").value.trim();
+
+      showLoading("Fetching Roblox data...");
+      try {
+        const res = await callBackendAPI({ action: "completeRegistration", email: currentEmail, password: currentPassword, robloxUsername: robloxUser });
+        hideLoading();
+        if (!res) { showAlert("Server returned empty response."); return; }
+        if (res.success) {
+          document.getElementById("displayVerifyEmail").innerText = currentEmail;
+          switchView("viewVerify");
+        } else {
+          showAlert(res.message || "Registration failed.");
+        }
+      } catch(err) {
+        hideLoading();
+        showAlert("Error: " + err.message);
+      }
+    }
+
+    async function handleVerifyCode(e) {
+      e.preventDefault();
+      hideAlert();
+      var code = document.getElementById("verifyCode").value.trim();
+
+      showLoading("Verifying code...");
+      try {
+        const res = await callBackendAPI({ action: "verifyEmailCode", email: currentEmail, code: code });
+        hideLoading();
+        if (!res) { showAlert("Server returned empty response."); return; }
+        if (res.success) {
+          localStorage.setItem("wingyEmail", currentEmail);
+          localStorage.removeItem("wingyLoggedOut");
+          if (!res.user.birthday || res.user.birthday === "") {
+            switchView("viewBirthday");
+          } else {
+            routeUser(res.user);
+          }
+        } else {
+          showAlert(res.message || "Verification failed.");
+        }
+      } catch(err) {
+        hideLoading();
+        showAlert("Error: " + err.message);
+      }
+    }
+
+    function handleSaveBirthday(e) {
+      e.preventDefault();
+      var month = document.getElementById("bdayMonth").value;
+      var day = document.getElementById("bdayDay").value;
+      if (!month || !day) {
+        showAlert("Please select a month and day, or click 'Skip for now'.");
+        return;
+      }
+      submitBirthday(month + " " + day);
+    }
+
+    function handleSkipBirthday() {
+      submitBirthday("Skipped");
+    }
+
+    async function submitBirthday(bdayVal) {
+      showLoading("Saving...");
+      try {
+        const res = await callBackendAPI({ action: "saveUserBirthday", email: currentEmail, birthdayVal: bdayVal });
+        hideLoading();
+        if (!res) { showAlert("Server returned empty response."); return; }
+        if (res.success) {
+          routeUser(res.user);
+        } else {
+          showAlert(res.message || "Failed to save birthday.");
+        }
+      } catch(err) {
+        hideLoading();
+        showAlert("Error: " + err.message);
+      }
+    }
+
+    async function checkStatusManual() {
+      if (!currentEmail || currentEmail.trim() === "") {
+        currentEmail = localStorage.getItem("wingyEmail") || "";
+      }
+      if (!currentEmail) {
+        showAlert("Please enter a valid email address.");
+        return;
+      }
+
+      showLoading("Checking status...");
+      try {
+        const res = await callBackendAPI({ action: "checkUserStatus", email: currentEmail });
+        hideLoading();
+        if (!res) {
+          showAlert("Server returned empty response.");
+          return;
+        }
+        if (res.success && res.user) {
+          if (res.user.status === "APPROVED") {
+            routeUser(res.user);
+          } else {
+            showAlert("Account status is: " + res.user.status + ". Waiting for admin approval.", "info");
+          }
+        } else {
+          showAlert(res.message || "Error checking status.");
+        }
+      } catch(err) {
+        hideLoading();
+        showAlert("Error: " + err.message);
+      }
+    }
+
+    async function handleSendReset(e) {
+      e.preventDefault();
+      hideAlert();
+      var email = document.getElementById("resetEmail").value.trim();
+      currentEmail = email;
+
+      showLoading("Sending reset code...");
+      try {
+        const res = await callBackendAPI({ action: "requestPasswordReset", email: email });
+        hideLoading();
+        if (!res) { showAlert("Server returned empty response."); return; }
+        if (res.success) {
+          showAlert("Reset code sent to your email!", "success");
+          switchView("viewConfirmReset");
+        } else {
+          showAlert(res.message || "Could not send reset code.");
+        }
+      } catch(err) {
+        hideLoading();
+        showAlert("Error: " + err.message);
+      }
+    }
+
+    async function handleConfirmReset(e) {
+      e.preventDefault();
+      hideAlert();
+      var code = document.getElementById("resetCode").value.trim();
+      var newPass = document.getElementById("newPassword").value;
+
+      showLoading("Updating password...");
+      try {
+        const res = await callBackendAPI({ action: "confirmPasswordReset", email: currentEmail, code: code, newPassword: newPass });
+        hideLoading();
+        if (!res) { showAlert("Server returned empty response."); return; }
+        if (res.success) {
+          showToast("Password updated successfully!", "success");
+          switchView("viewSignIn");
+        } else {
+          showAlert(res.message || "Password update failed.");
+        }
+      } catch(err) {
+        hideLoading();
+        showAlert("Error: " + err.message);
+      }
+    }
+
+    function jumpToEmail() {
+      window.open("https://mail.google.com/mail/u/0/#search/from%3A(WingyBlox+Hub)+OR+subject%3A(WingyBlox+Hub)", '_blank');
+    }
+
+    function routeUser(user) {
+      if (!user) return;
+      currentUser = user;
+      currentEmail = user.email;
+      localStorage.setItem("wingyEmail", currentEmail);
+      localStorage.removeItem("wingyLoggedOut");
+      applyTheme(user.theme || "DARK");
+
+      if (user.status === "PENDING_VERIFICATION") {
+        document.getElementById("displayVerifyEmail").innerText = user.email;
+        switchView("viewVerify");
+      } else if (!user.birthday || user.birthday === "") {
+        switchView("viewBirthday");
+      } else if (user.status === "PENDING_APPROVAL") {
+        switchView("viewPendingApproval");
+      } else if (user.status === "APPROVED") {
+        document.getElementById("authCard").style.display = "none";
+        document.getElementById("authBg").style.display = "none";
+        document.querySelector("footer").style.display = "none";
+        document.getElementById("dashContainer").style.display = "flex";
+
+        setupDashboard(user);
+        checkAndShowLoANotifications(user.email);
+      } else if (user.status === "REJECTED") {
+        showAlert("Your verification request was rejected.");
+      }
+    }
+
+    function applyTheme(theme) {
+      if (theme === "LIGHT") document.body.classList.add("light-theme");
+      else document.body.classList.remove("light-theme");
+    }
+
+    async function handleToggleTheme() {
+      var current = document.body.classList.contains("light-theme") ? "LIGHT" : "DARK";
+      showLoading("Switching theme...");
+      try {
+        const res = await callBackendAPI({ action: "toggleUserTheme", email: currentUser.email, currentTheme: current });
+        hideLoading();
+        if (res && res.success) {
+          currentUser.theme = res.theme;
+          applyTheme(res.theme);
+          showToast("Theme updated!", "info");
+        }
+      } catch(err) {
+        hideLoading();
+      }
+    }
+
+    async function setupDashboard(user) {
+      var headshotEls = document.querySelectorAll('.roblox-avatar');
+      headshotEls.forEach(el => el.setAttribute('data-userid', user.robloxUserId));
+      
+      document.getElementById("menuRobloxName").innerText = user.robloxUsername;
+      document.getElementById("menuEmail").innerText = user.email;
+
+      if (user.role === "ADMIN") {
+        document.getElementById("adminSidebarBtn").style.display = "flex";
+      }
+
+      var userDaysLeft = getDaysUntilBirthday(user.birthday);
+      if (userDaysLeft === 0) {
+        document.getElementById("motivationalBannerText").innerText = "🎉 Happy Birthday, " + user.robloxUsername + "! Wishing you an incredible day! 🎂";
+        triggerUserBirthdayCelebration(user.robloxUsername);
+      } else {
+        const quotes = [
+          "You're doing great, ",
+          "Happy " + new Date().toLocaleDateString('en-US', { weekday: 'long' }) + ", ",
+          "Hope you have an awesome day, "
+        ];
+        document.getElementById("motivationalBannerText").innerText = quotes[Math.floor(Math.random() * quotes.length)] + user.robloxUsername;
+      }
+
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      showLoading("Loading dashboard...");
+      try {
+        const res = await callBackendGET("getDashboardData");
+        if (res && res.success) {
+          document.getElementById("headerGroupIcon").src = res.groupIconUrl;
+          renderBirthdays(res.birthdays);
+          renderNewMembers(res.newMembers);
+          populateRobloxAvatars(function() { hideLoading(); });
+        } else {
+          hideLoading();
+        }
+      } catch(err) {
+        hideLoading();
+      }
+    }
+
+    function updateClock() {
+      var now = new Date();
+      document.getElementById("localClock").innerText = now.toLocaleTimeString();
+      try {
+        var tzFormatter = new Intl.DateTimeFormat(undefined, { timeZoneName: 'long' });
+        var parts = tzFormatter.formatToParts(now);
+        var tzPart = parts.find(p => p.type === 'timeZoneName');
+        if (tzPart) {
+          document.getElementById("localTzDisplay").innerText = tzPart.value;
+        }
+      } catch(e) {}
+    }
+
+    function renderBirthdays(list) {
+      var container = document.getElementById("birthdaysScroll");
+      if (!list || list.length === 0) {
+        container.innerHTML = '<p style="font-size:12px; color:var(--text-sub);">No upcoming birthdays this week.</p>';
+        return;
+      }
+
+      var filtered = [];
+      list.forEach(item => {
+        var daysLeft = getDaysUntilBirthday(item.birthday);
+        if (daysLeft !== null) {
+          filtered.push({
+            robloxUsername: item.robloxUsername,
+            robloxUserId: item.robloxUserId,
+            daysLeft: daysLeft,
+            cleanBday: cleanDisplayBirthday(item.birthday)
+          });
+        }
+      });
+
+      filtered.sort((a, b) => a.daysLeft - b.daysLeft);
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<p style="font-size:12px; color:var(--text-sub);">No upcoming birthdays this week.</p>';
+        return;
+      }
+
+      var html = "";
+
+      filtered.forEach(item => {
+        var labelText = "";
+        var cardClass = "scroll-card-bday";
+
+        if (item.daysLeft === 0) {
+          labelText = "Today! 🎉";
+          cardClass += " is-today";
+        } else if (item.daysLeft === 1) {
+          labelText = "In 1 day (" + item.cleanBday + ")";
+        } else {
+          labelText = "In " + item.daysLeft + " days (" + item.cleanBday + ")";
+        }
+
+        html += '<div class="' + cardClass + '">' +
+            '<img class="roblox-avatar" data-userid="' + item.robloxUserId + '" src="" alt="Avatar">' +
+            '<h4 title="' + item.robloxUsername + '">' + item.robloxUsername + '</h4>' +
+            '<p>' + labelText + '</p>' +
+          '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderNewMembers(list) {
+      var container = document.getElementById("newTeamScroll");
+      if (!list || list.length === 0) {
+        container.innerHTML = '<p style="font-size:12px; color:var(--text-sub);">No new members joined recently.</p>';
+        return;
+      }
+      var html = "";
+      list.forEach(item => {
+        html += '<div class="scroll-card-team">' +
+            '<img class="roblox-avatar" data-userid="' + item.robloxUserId + '" src="" alt="Avatar">' +
+            '<h4 title="' + item.robloxUsername + '">' + item.robloxUsername + '</h4>' +
+            '<p title="' + item.robloxRank + '">' + item.robloxRank + '</p>' +
+          '</div>';
+      });
+      container.innerHTML = html;
+    }
+
+    function toggleProfileMenu(e) {
+      e.stopPropagation();
+      document.getElementById("profileMenu").classList.toggle("active");
+    }
+    document.addEventListener('click', () => {
+      var menu = document.getElementById("profileMenu");
+      if (menu) menu.classList.remove("active");
+    });
+
+    function openPreferences() {
+      document.getElementById("passwordSection").style.display = "block";
+      document.getElementById("prefEmail").value = currentUser.email || "";
+      document.getElementById("prefCountry").value = currentUser.country || "";
+      document.getElementById("emailVerifyCodeSection").style.display = "none";
+      
+      var clean = cleanDisplayBirthday(currentUser.birthday);
+      if (clean && clean !== "Skipped" && clean.includes(" ")) {
+        var parts = clean.split(" ");
+        document.getElementById("prefBdayMonth").value = parts[0] || "";
+        document.getElementById("prefBdayDay").value = parts[1] || "";
+      } else {
+        document.getElementById("prefBdayMonth").value = "";
+        document.getElementById("prefBdayDay").value = "";
+      }
+
+      document.getElementById("prefModal").classList.add("active");
+    }
+
+    function closePreferences() {
+      document.getElementById("prefModal").classList.remove("active");
+    }
+
+    async function handleRequestEmailChange() {
+      var newE = document.getElementById("prefEmail").value.trim();
+      if (!newE || newE.toLowerCase() === currentUser.email.toLowerCase()) {
+        showToast("Please enter a new, different email address.", "error");
+        return;
+      }
+      targetNewEmail = newE;
+      showLoading("Sending verification code to " + newE + "...");
+      try {
+        const res = await callBackendAPI({ action: "requestEmailChangeCode", currentEmail: currentUser.email, newEmail: targetNewEmail });
+        hideLoading();
+        if (res && res.success) {
+          document.getElementById("emailVerifyCodeSection").style.display = "block";
+          showToast("Verification code sent to " + newE, "info");
+        } else {
+          showToast(res ? res.message : "Error sending code.", "error");
+        }
+      } catch(err) {
+        hideLoading();
+        showToast("Error sending code.", "error");
+      }
+    }
+
+    async function handleConfirmEmailChange() {
+      var code = document.getElementById("prefEmailCode").value.trim();
+      if (!code) { showToast("Please enter the verification code.", "error"); return; }
+      showLoading("Verifying new email...");
+      try {
+        const res = await callBackendAPI({ action: "confirmEmailChange", currentEmail: currentUser.email, newEmail: targetNewEmail, code: code });
+        hideLoading();
+        if (res && res.success) {
+          currentUser.email = res.email;
+          localStorage.setItem("wingyEmail", res.email);
+          document.getElementById("menuEmail").innerText = res.email;
+          document.getElementById("emailVerifyCodeSection").style.display = "none";
+          showToast("Email changed successfully!", "success");
+        } else {
+          showToast(res ? res.message : "Verification failed.", "error");
+        }
+      } catch(err) {
+        hideLoading();
+        showToast("Error changing email.", "error");
+      }
+    }
+
+    async function saveGeneralPref() {
+      var c = document.getElementById("prefCountry").value;
+      var m = document.getElementById("prefBdayMonth").value;
+      var d = document.getElementById("prefBdayDay").value;
+      var b = (m && d) ? (m + " " + d) : "Skipped";
+
+      showLoading("Saving preferences...");
+      try {
+        const res = await callBackendAPI({ action: "updateUserPreferences", email: currentUser.email, newCountry: c, newBirthday: b });
+        hideLoading();
+        if (res && res.success) {
+          currentUser.country = c;
+          currentUser.birthday = cleanDisplayBirthday(b);
+          closePreferences();
+          showToast("Preferences saved!", "success");
+        } else {
+          showToast(res ? res.message : "Failed to save preferences.", "error");
+        }
+      } catch(err) {
+        hideLoading();
+        showToast("Error saving preferences.", "error");
+      }
+    }
+
+    async function handleChangePassword() {
+      var curr = document.getElementById("currPass").value;
+      var nw = document.getElementById("newPass").value;
+      showLoading("Updating password...");
+      try {
+        const res = await callBackendAPI({ action: "changeUserPassword", email: currentUser.email, currentPassword: curr, newPassword: nw });
+        hideLoading();
+        if (res && res.success) {
+          showToast("Password updated successfully!", "success");
+          closePreferences();
+        } else {
+          showToast(res ? res.message : "Error updating password.", "error");
+        }
+      } catch(err) {
+        hideLoading();
+        showToast("Error updating password.", "error");
+      }
+    }
+
+    async function loadAdminPortalRequests() {
+      var container = document.getElementById("adminPortalRequestsList");
+      container.innerHTML = '<p style="font-size: 13px; color: var(--text-sub);">Loading pending requests...</p>';
+      showLoading("Loading pending verifications...");
+
+      try {
+        const res = await callBackendAPI({ action: "getPendingVerifications", callerEmail: currentUser.email });
+        if (!res || !res.success || !res.requests || res.requests.length === 0) {
+          container.innerHTML = '<div style="background:var(--bg-subcard); padding:20px; border-radius:12px; border:1px solid var(--border-color); text-align:center;"><p style="font-size: 14px; color: var(--text-sub);">No pending staff approvals at this time.</p></div>';
+          populateRobloxAvatars(function() { hideLoading(); });
+          return;
+        }
+        var html = "";
+        res.requests.forEach(item => {
+          html += '<div class="admin-req-card">' +
+              '<img class="roblox-avatar" data-userid="' + item.robloxUserId + '" src="" alt="Avatar">' +
+              '<div class="admin-req-info">' +
+                '<h3>' + item.robloxUsername + '</h3>' +
+                '<p><b>Email:</b> ' + item.email + '</p>' +
+                '<p><b>Birthday:</b> ' + cleanDisplayBirthday(item.birthday) + '</p>' +
+                '<span class="admin-req-badge">' + item.robloxRank + '</span>' +
+              '</div>' +
+              '<div style="display:flex; flex-direction:column; gap:8px;">' +
+                '<button class="btn" style="background:#16a34a; padding:6px 16px; font-size:12px;" onclick="processAdminReq(\'' + item.email + '\', \'APPROVED\')">Accept</button>' +
+                '<button class="btn" style="background:#dc2626; padding:6px 16px; font-size:12px;" onclick="processAdminReq(\'' + item.email + '\', \'REJECTED\')">Reject</button>' +
+              '</div>' +
+            '</div>';
+        });
+        container.innerHTML = html;
+        populateRobloxAvatars(function() { hideLoading(); });
+      } catch(err) {
+        hideLoading();
+      }
+    }
+
+    async function processAdminReq(targetEmail, action) {
+      showLoading("Updating account status...");
+      try {
+        const res = await callBackendAPI({ action: "processVerification", callerEmail: currentUser.email, targetEmail: targetEmail, statusAction: action });
+        hideLoading();
+        if (res && res.success) {
+          showToast("Request processed!", "success");
+          loadAdminPortalRequests();
+        } else {
+          showToast(res ? res.message : "Error processing request.", "error");
+        }
+      } catch(err) {
+        hideLoading();
+        showToast("Error processing request.", "error");
+      }
+    }
+  </script>
+</body>
+</html>
